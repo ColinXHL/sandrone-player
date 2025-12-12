@@ -48,6 +48,25 @@ namespace FloatWebPlayer.Views
             public int Y;
         }
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        private const int SM_CXSCREEN = 0;
+        private const int SM_CYSCREEN = 1;
+
         #endregion
 
         #region Events
@@ -156,6 +175,9 @@ namespace FloatWebPlayer.Views
             InitializeComponent();
             InitializeWindowPosition();
             InitializeAutoShowHide();
+            
+            // 窗口关闭时停止定时器
+            Closing += (s, e) => StopAutoShowHide();
         }
 
         #endregion
@@ -380,6 +402,9 @@ namespace FloatWebPlayer.Views
         /// </summary>
         private void MouseCheckTimer_Tick(object? sender, EventArgs e)
         {
+            // 防止在窗口关闭后操作
+            if (!IsLoaded) return;
+
             if (!GetCursorPos(out POINT cursorPos))
                 return;
 
@@ -387,21 +412,27 @@ namespace FloatWebPlayer.Views
             if ((DateTime.Now - _lastStateChangeTime).TotalMilliseconds < StateStabilityMs)
                 return;
 
-            var workArea = SystemParameters.WorkArea;
-            var triggerAreaHeight = workArea.Height * TriggerAreaRatio;
+            // 使用物理像素计算触发区域（避免 DPI 问题）
+            int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+            int triggerAreaHeight = (int)(screenHeight * TriggerAreaRatio);
 
-            // 检查鼠标是否在窗口范围内（水平方向，考虑边距）
-            bool isInWindowHorizontalRange = cursorPos.X >= Left + ContentMargin && 
-                                             cursorPos.X <= Left + Width - ContentMargin;
+            // 获取窗口的屏幕坐标（物理像素）
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            bool isMouseOverWindow = false;
+            bool isInWindowHorizontalRange = false;
+            
+            if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out RECT windowRect))
+            {
+                // 使用物理像素坐标进行比较
+                isInWindowHorizontalRange = cursorPos.X >= windowRect.Left + ContentMargin && 
+                                             cursorPos.X <= windowRect.Right - ContentMargin;
+                isMouseOverWindow = isInWindowHorizontalRange &&
+                                     cursorPos.Y >= windowRect.Top && 
+                                     cursorPos.Y <= windowRect.Bottom - ContentMargin;
+            }
 
-            // 检查鼠标是否在窗口内（考虑边距）
-            bool isMouseOverWindow = isInWindowHorizontalRange &&
-                                     cursorPos.Y >= Top && 
-                                     cursorPos.Y <= Top + Height - ContentMargin;
-
-            // 检查鼠标是否在屏幕顶部触发区域（整个屏幕宽度）
-            bool isInTriggerArea = cursorPos.Y >= workArea.Top &&
-                                   cursorPos.Y <= workArea.Top + triggerAreaHeight;
+            // 检查鼠标是否在屏幕顶部触发区域（整个屏幕宽度，使用物理像素）
+            bool isInTriggerArea = cursorPos.Y >= 0 && cursorPos.Y <= triggerAreaHeight;
 
             // 根据当前状态和鼠标位置决定目标状态
             ControlBarDisplayState targetState = _displayState;
@@ -465,12 +496,18 @@ namespace FloatWebPlayer.Views
                 return;
             }
 
-            // 检查鼠标是否在窗口内（考虑边距）
-            bool isInWindowHorizontalRange = cursorPos.X >= Left + ContentMargin && 
-                                             cursorPos.X <= Left + Width - ContentMargin;
-            bool isMouseOverWindow = isInWindowHorizontalRange &&
-                                     cursorPos.Y >= Top && 
-                                     cursorPos.Y <= Top + Height - ContentMargin;
+            // 获取窗口的屏幕坐标（物理像素）
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            bool isMouseOverWindow = false;
+            
+            if (hwnd != IntPtr.Zero && GetWindowRect(hwnd, out RECT windowRect))
+            {
+                bool isInWindowHorizontalRange = cursorPos.X >= windowRect.Left + ContentMargin && 
+                                                 cursorPos.X <= windowRect.Right - ContentMargin;
+                isMouseOverWindow = isInWindowHorizontalRange &&
+                                     cursorPos.Y >= windowRect.Top && 
+                                     cursorPos.Y <= windowRect.Bottom - ContentMargin;
+            }
 
             // 只要不在窗口上就隐藏（不考虑触发区域）
             if (!isMouseOverWindow)
@@ -503,6 +540,9 @@ namespace FloatWebPlayer.Views
         /// </summary>
         private void SetDisplayState(ControlBarDisplayState state)
         {
+            // 防止在窗口关闭后操作
+            if (!IsLoaded) return;
+
             if (_displayState == state)
                 return;
 
@@ -594,6 +634,8 @@ namespace FloatWebPlayer.Views
         /// </summary>
         public void StartAutoShowHide()
         {
+            // 先显示窗口以创建 hwnd，然后再隐藏
+            Show();
             SetDisplayState(ControlBarDisplayState.Hidden);
             _mouseCheckTimer?.Start();
         }
@@ -603,8 +645,19 @@ namespace FloatWebPlayer.Views
         /// </summary>
         public void StopAutoShowHide()
         {
-            _mouseCheckTimer?.Stop();
-            _hideDelayTimer?.Stop();
+            if (_mouseCheckTimer != null)
+            {
+                _mouseCheckTimer.Stop();
+                _mouseCheckTimer.Tick -= MouseCheckTimer_Tick;
+                _mouseCheckTimer = null;
+            }
+
+            if (_hideDelayTimer != null)
+            {
+                _hideDelayTimer.Stop();
+                _hideDelayTimer.Tick -= HideDelayTimer_Tick;
+                _hideDelayTimer = null;
+            }
         }
 
         #endregion

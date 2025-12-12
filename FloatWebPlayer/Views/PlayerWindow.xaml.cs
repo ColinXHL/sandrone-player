@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FloatWebPlayer.Helpers;
 using Microsoft.Web.WebView2.Core;
 using Cursors = System.Windows.Input.Cursors;
@@ -45,6 +46,21 @@ namespace FloatWebPlayer.Views
         /// </summary>
         private const double MinWindowHeight = 150;
 
+        /// <summary>
+        /// 最小透明度
+        /// </summary>
+        private const double MinOpacity = 0.2;
+
+        /// <summary>
+        /// 最大透明度
+        /// </summary>
+        private const double MaxOpacity = 1.0;
+
+        /// <summary>
+        /// 透明度步进
+        /// </summary>
+        private const double OpacityStep = 0.1;
+
         #endregion
 
         #region Fields
@@ -59,6 +75,31 @@ namespace FloatWebPlayer.Views
         /// </summary>
         private Rect _restoreBounds;
 
+        /// <summary>
+        /// 是否处于鼠标穿透模式
+        /// </summary>
+        private bool _isClickThrough;
+
+        /// <summary>
+        /// 穿透模式前保存的透明度
+        /// </summary>
+        private double _opacityBeforeClickThrough = 1.0;
+
+        /// <summary>
+        /// 当前窗口透明度（使用 Win32 API 控制）
+        /// </summary>
+        private double _windowOpacity = 1.0;
+
+        /// <summary>
+        /// 穿透模式下的鼠标位置检测定时器
+        /// </summary>
+        private DispatcherTimer? _clickThroughTimer;
+
+        /// <summary>
+        /// 记录穿透模式下鼠标是否在窗口内
+        /// </summary>
+        private bool _isCursorInWindowWhileClickThrough;
+
         #endregion
 
         #region Constructor
@@ -68,6 +109,28 @@ namespace FloatWebPlayer.Views
             InitializeComponent();
             InitializeWindowPosition();
             InitializeWebView();
+            
+            // 窗口关闭时清理
+            Closing += (s, e) =>
+            {
+                // 停止穿透模式定时器
+                StopClickThroughTimer();
+                
+                // 取消事件订阅
+                if (WebView.CoreWebView2 != null)
+                {
+                    WebView.CoreWebView2.WebMessageReceived -= CoreWebView2_WebMessageReceived;
+                    WebView.CoreWebView2.NavigationCompleted -= CoreWebView2_NavigationCompleted;
+                    WebView.CoreWebView2.SourceChanged -= CoreWebView2_SourceChanged;
+                    WebView.CoreWebView2.NewWindowRequested -= CoreWebView2_NewWindowRequested;
+                }
+            };
+            
+            // 窗口关闭后退出应用
+            Closed += (s, e) =>
+            {
+                System.Windows.Application.Current.Shutdown();
+            };
         }
 
         #endregion
@@ -370,6 +433,135 @@ namespace FloatWebPlayer.Views
                 // 忽略脚本执行错误
             }
         }
+
+        /// <summary>
+        /// 降低透明度
+        /// </summary>
+        /// <returns>当前透明度</returns>
+        public double DecreaseOpacity()
+        {
+            if (_isClickThrough) return _windowOpacity;
+
+            _windowOpacity = Math.Max(MinOpacity, _windowOpacity - OpacityStep);
+            Win32Helper.SetWindowOpacity(this, _windowOpacity);
+            return _windowOpacity;
+        }
+
+        /// <summary>
+        /// 增加透明度
+        /// </summary>
+        /// <returns>当前透明度</returns>
+        public double IncreaseOpacity()
+        {
+            if (_isClickThrough) return _windowOpacity;
+
+            _windowOpacity = Math.Min(MaxOpacity, _windowOpacity + OpacityStep);
+            Win32Helper.SetWindowOpacity(this, _windowOpacity);
+            return _windowOpacity;
+        }
+
+        /// <summary>
+        /// 切换鼠标穿透模式
+        /// </summary>
+        /// <returns>是否处于穿透模式</returns>
+        public bool ToggleClickThrough()
+        {
+            _isClickThrough = !_isClickThrough;
+
+            if (_isClickThrough)
+            {
+                // 保存当前透明度
+                _opacityBeforeClickThrough = _windowOpacity;
+                
+                // 启动定时器检测鼠标位置
+                StartClickThroughTimer();
+            }
+            else
+            {
+                // 停止定时器
+                StopClickThroughTimer();
+                
+                // 恢复之前的透明度
+                _windowOpacity = _opacityBeforeClickThrough;
+                Win32Helper.SetWindowOpacity(this, _windowOpacity);
+            }
+
+            Win32Helper.SetClickThrough(this, _isClickThrough);
+            return _isClickThrough;
+        }
+
+        /// <summary>
+        /// 启动穿透模式鼠标检测定时器
+        /// </summary>
+        private void StartClickThroughTimer()
+        {
+            _clickThroughTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(50)
+            };
+            _clickThroughTimer.Tick += ClickThroughTimer_Tick;
+            _clickThroughTimer.Start();
+            
+            // 立即检测一次
+            UpdateClickThroughOpacity();
+        }
+
+        /// <summary>
+        /// 停止穿透模式鼠标检测定时器
+        /// </summary>
+        private void StopClickThroughTimer()
+        {
+            if (_clickThroughTimer != null)
+            {
+                _clickThroughTimer.Stop();
+                _clickThroughTimer.Tick -= ClickThroughTimer_Tick;
+                _clickThroughTimer = null;
+            }
+            _isCursorInWindowWhileClickThrough = false;
+        }
+
+        /// <summary>
+        /// 定时器回调：检测鼠标位置并更新透明度
+        /// </summary>
+        private void ClickThroughTimer_Tick(object? sender, EventArgs e)
+        {
+            UpdateClickThroughOpacity();
+        }
+
+        /// <summary>
+        /// 更新穿透模式下的透明度
+        /// </summary>
+        private void UpdateClickThroughOpacity()
+        {
+            bool cursorInWindow = Win32Helper.IsCursorInWindow(this);
+            
+            // 只有状态变化时才更新透明度
+            if (cursorInWindow != _isCursorInWindowWhileClickThrough)
+            {
+                _isCursorInWindowWhileClickThrough = cursorInWindow;
+                
+                if (cursorInWindow)
+                {
+                    // 鼠标进入窗口，降至最低透明度
+                    Win32Helper.SetWindowOpacity(this, MinOpacity);
+                }
+                else
+                {
+                    // 鼠标离开窗口，恢复正常透明度
+                    Win32Helper.SetWindowOpacity(this, _opacityBeforeClickThrough);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 获取当前透明度百分比
+        /// </summary>
+        public int OpacityPercent => (int)(_windowOpacity * 100);
+
+        /// <summary>
+        /// 是否处于鼠标穿透模式
+        /// </summary>
+        public bool IsClickThrough => _isClickThrough;
 
         #endregion
 

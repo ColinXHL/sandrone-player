@@ -125,17 +125,19 @@ namespace FloatWebPlayer
 
             _hotkeyService.DecreaseOpacity += (s, e) =>
             {
-                // TODO: Phase 3.10 实现透明度调节
+                var opacity = _playerWindow?.DecreaseOpacity();
+                System.Diagnostics.Debug.WriteLine($"[Hotkey] DecreaseOpacity: {opacity}");
             };
 
             _hotkeyService.IncreaseOpacity += (s, e) =>
             {
-                // TODO: Phase 3.10 实现透明度调节
+                var opacity = _playerWindow?.IncreaseOpacity();
+                System.Diagnostics.Debug.WriteLine($"[Hotkey] IncreaseOpacity: {opacity}");
             };
 
             _hotkeyService.ToggleClickThrough += (s, e) =>
             {
-                // TODO: Phase 3.11 实现鼠标穿透模式
+                _playerWindow?.ToggleClickThrough();
             };
 
             _hotkeyService.Start();
@@ -146,7 +148,12 @@ namespace FloatWebPlayer
         /// </summary>
         protected override void OnExit(ExitEventArgs e)
         {
+            // 先停止快捷键服务
             _hotkeyService?.Dispose();
+            
+            // 确保控制栏停止定时器
+            _controlBarWindow?.StopAutoShowHide();
+            
             base.OnExit(e);
         }
 

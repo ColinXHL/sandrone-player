@@ -31,7 +31,7 @@ namespace FloatWebPlayer.Services
         private const uint MOD_CONTROL = 0x0002;
         private const uint MOD_SHIFT = 0x0004;
 
-        // 虚拟键码
+        // 虚拟键码 - 主键盘
         private const uint VK_0 = 0x30;
         private const uint VK_5 = 0x35;
         private const uint VK_6 = 0x36;
@@ -142,8 +142,15 @@ namespace FloatWebPlayer.Services
             _hwndSource?.Dispose();
             _hwndSource = null;
 
-            _messageWindow?.Close();
-            _messageWindow = null;
+            // 在 UI 线程上关闭窗口
+            if (_messageWindow != null)
+            {
+                _messageWindow.Dispatcher.Invoke(() =>
+                {
+                    _messageWindow.Close();
+                });
+                _messageWindow = null;
+            }
 
             _hwnd = IntPtr.Zero;
             _isStarted = false;
@@ -160,7 +167,7 @@ namespace FloatWebPlayer.Services
         {
             if (_hwnd == IntPtr.Zero) return;
 
-            // 注册快捷键（无修饰键）
+            // 注册主键盘快捷键（无修饰键）
             RegisterHotKey(_hwnd, HOTKEY_SEEK_BACKWARD, MOD_NONE, VK_5);
             RegisterHotKey(_hwnd, HOTKEY_SEEK_FORWARD, MOD_NONE, VK_6);
             RegisterHotKey(_hwnd, HOTKEY_TOGGLE_PLAY, MOD_NONE, VK_OEM_3);
@@ -176,6 +183,7 @@ namespace FloatWebPlayer.Services
         {
             if (_hwnd == IntPtr.Zero) return;
 
+            // 注销主键盘快捷键
             UnregisterHotKey(_hwnd, HOTKEY_SEEK_BACKWARD);
             UnregisterHotKey(_hwnd, HOTKEY_SEEK_FORWARD);
             UnregisterHotKey(_hwnd, HOTKEY_TOGGLE_PLAY);
