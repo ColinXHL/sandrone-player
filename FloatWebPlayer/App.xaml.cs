@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using FloatWebPlayer.Services;
 using FloatWebPlayer.Views;
 
 namespace FloatWebPlayer
@@ -12,6 +13,12 @@ namespace FloatWebPlayer
 
         private PlayerWindow? _playerWindow;
         private ControlBarWindow? _controlBarWindow;
+        private HotkeyService? _hotkeyService;
+
+        /// <summary>
+        /// 默认快进/倒退秒数
+        /// </summary>
+        private const int DefaultSeekSeconds = 5;
 
         #endregion
 
@@ -36,6 +43,9 @@ namespace FloatWebPlayer
             
             // 控制栏窗口启动自动显示/隐藏监听（默认隐藏，鼠标移到顶部触发显示）
             _controlBarWindow.StartAutoShowHide();
+
+            // 启动全局快捷键服务
+            StartHotkeyService();
         }
 
         /// <summary>
@@ -88,6 +98,56 @@ namespace FloatWebPlayer
                 _controlBarWindow.UpdateBackButtonState(_playerWindow.CanGoBack);
                 _controlBarWindow.UpdateForwardButtonState(_playerWindow.CanGoForward);
             };
+        }
+
+        /// <summary>
+        /// 启动全局快捷键服务
+        /// </summary>
+        private void StartHotkeyService()
+        {
+            _hotkeyService = new HotkeyService();
+
+            // 绑定快捷键事件
+            _hotkeyService.SeekBackward += (s, e) =>
+            {
+                _playerWindow?.SeekAsync(-DefaultSeekSeconds);
+            };
+
+            _hotkeyService.SeekForward += (s, e) =>
+            {
+                _playerWindow?.SeekAsync(DefaultSeekSeconds);
+            };
+
+            _hotkeyService.TogglePlay += (s, e) =>
+            {
+                _playerWindow?.TogglePlayAsync();
+            };
+
+            _hotkeyService.DecreaseOpacity += (s, e) =>
+            {
+                // TODO: Phase 3.10 实现透明度调节
+            };
+
+            _hotkeyService.IncreaseOpacity += (s, e) =>
+            {
+                // TODO: Phase 3.10 实现透明度调节
+            };
+
+            _hotkeyService.ToggleClickThrough += (s, e) =>
+            {
+                // TODO: Phase 3.11 实现鼠标穿透模式
+            };
+
+            _hotkeyService.Start();
+        }
+
+        /// <summary>
+        /// 应用退出事件
+        /// </summary>
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _hotkeyService?.Dispose();
+            base.OnExit(e);
         }
 
         #endregion

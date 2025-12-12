@@ -309,6 +309,68 @@ namespace FloatWebPlayer.Views
             WebView.CoreWebView2?.Reload();
         }
 
+        /// <summary>
+        /// 切换视频播放/暂停
+        /// </summary>
+        public async void TogglePlayAsync()
+        {
+            if (WebView.CoreWebView2 == null) return;
+
+            const string script = @"
+                (function() {
+                    var video = document.querySelector('video');
+                    if (video) {
+                        if (video.paused) {
+                            video.play();
+                            return 'playing';
+                        } else {
+                            video.pause();
+                            return 'paused';
+                        }
+                    }
+                    return 'no-video';
+                })();
+            ";
+
+            try
+            {
+                await WebView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch
+            {
+                // 忽略脚本执行错误
+            }
+        }
+
+        /// <summary>
+        /// 视频快进/倒退
+        /// </summary>
+        /// <param name="seconds">秒数，正数前进，负数倒退</param>
+        public async void SeekAsync(int seconds)
+        {
+            if (WebView.CoreWebView2 == null) return;
+
+            string script = $@"
+                (function() {{
+                    var video = document.querySelector('video');
+                    if (video) {{
+                        video.currentTime += {seconds};
+                        return video.currentTime;
+                    }}
+                    return -1;
+                }})();
+            ";
+
+            try
+            {
+                await WebView.CoreWebView2.ExecuteScriptAsync(script);
+            }
+            catch
+            {
+                // 忽略脚本执行错误
+            }
+        }
+
         #endregion
 
         #region Event Handlers
