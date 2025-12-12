@@ -109,6 +109,44 @@
         });
     }
 
+    /**
+     * 处理全屏状态变化
+     * 当元素进入全屏时，将控制按钮移动到全屏元素内部
+     */
+    function handleFullscreenChange() {
+        const controls = document.getElementById('float-player-controls');
+        const dragZone = document.getElementById('float-player-drag-zone');
+        
+        if (!controls || !dragZone) return;
+
+        // 获取当前全屏元素（兼容不同浏览器）
+        const fullscreenElement = document.fullscreenElement || 
+                                  document.webkitFullscreenElement || 
+                                  document.msFullscreenElement;
+
+        if (fullscreenElement) {
+            // 将控制元素移动到全屏元素内
+            console.log('[FloatPlayer] Moving controls to fullscreen element');
+            fullscreenElement.appendChild(dragZone);
+            fullscreenElement.appendChild(controls);
+        } else {
+            // 退出全屏，移回 body
+            console.log('[FloatPlayer] Moving controls back to body');
+            document.body.appendChild(dragZone);
+            document.body.appendChild(controls);
+        }
+    }
+
+    /**
+     * 设置全屏状态监听
+     */
+    function setupFullscreenHandler() {
+        // 监听全屏状态变化（兼容不同浏览器）
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    }
+
     // ========================================
     // 初始化
     // ========================================
@@ -134,6 +172,7 @@
         createDragZone();
         const controls = createControlButtons();
         setupVisibilityHandlers(controls);
+        setupFullscreenHandler();
         console.log('[FloatPlayer] Injection complete!');
     }
 
