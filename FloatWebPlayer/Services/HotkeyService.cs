@@ -1,51 +1,52 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
 
 namespace FloatWebPlayer.Services
 {
     /// <summary>
-    /// 全局快捷键服务，使用 Win32 API RegisterHotKey 实现
+    /// 全局快捷键服务，使用低级键盘钩子实现
+    /// 按键不会被拦截，既能触发快捷键功能，又能正常输入
     /// </summary>
     public class HotkeyService : IDisposable
     {
         #region Win32 API
 
-        [DllImport("user32.dll")]
-        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+        private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
 
         [DllImport("user32.dll")]
-        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
-        #endregion
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GetModuleHandle(string? lpModuleName);
 
-        #region Constants
+        private const int WH_KEYBOARD_LL = 13;
+        private const int WM_KEYDOWN = 0x0100;
 
-        // Windows 消息常量
-        private const int WM_HOTKEY = 0x0312;
+        [StructLayout(LayoutKind.Sequential)]
+        private struct KBDLLHOOKSTRUCT
+        {
+            public uint vkCode;
+            public uint scanCode;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
 
-        // 修饰键常量
-        private const uint MOD_NONE = 0x0000;
-        private const uint MOD_ALT = 0x0001;
-        private const uint MOD_CONTROL = 0x0002;
-        private const uint MOD_SHIFT = 0x0004;
-
-        // 虚拟键码 - 主键盘
+        // 虚拟键码
         private const uint VK_0 = 0x30;
         private const uint VK_5 = 0x35;
         private const uint VK_6 = 0x36;
         private const uint VK_7 = 0x37;
         private const uint VK_8 = 0x38;
         private const uint VK_OEM_3 = 0xC0; // ` 波浪键
-
-        // 快捷键 ID
-        private const int HOTKEY_SEEK_BACKWARD = 1;  // 5
-        private const int HOTKEY_SEEK_FORWARD = 2;   // 6
-        private const int HOTKEY_TOGGLE_PLAY = 3;    // `
-        private const int HOTKEY_DECREASE_OPACITY = 4; // 7
-        private const int HOTKEY_INCREASE_OPACITY = 5; // 8
-        private const int HOTKEY_TOGGLE_CLICK_THROUGH = 6; // 0
 
         #endregion
 
@@ -85,9 +86,8 @@ namespace FloatWebPlayer.Services
 
         #region Fields
 
-        private Window? _messageWindow;
-        private HwndSource? _hwndSource;
-        private IntPtr _hwnd = IntPtr.Zero;
+        private IntPtr _hookId = IntPtr.Zero;
+        private LowLevelKeyboardProc? _hookProc;
         private bool _isStarted;
         private bool _disposed;
 
@@ -102,30 +102,8 @@ namespace FloatWebPlayer.Services
         {
             if (_isStarted) return;
 
-            // 创建隐藏窗口用于接收消息
-            _messageWindow = new Window
-            {
-                Width = 0,
-                Height = 0,
-                WindowStyle = WindowStyle.None,
-                ShowInTaskbar = false,
-                ShowActivated = false,
-                Visibility = Visibility.Hidden
-            };
-
-            _messageWindow.SourceInitialized += (s, e) =>
-            {
-                _hwnd = new WindowInteropHelper(_messageWindow).Handle;
-                _hwndSource = HwndSource.FromHwnd(_hwnd);
-                _hwndSource?.AddHook(WndProc);
-
-                // 注册所有快捷键
-                RegisterAllHotkeys();
-            };
-
-            _messageWindow.Show();
-            _messageWindow.Hide();
-
+            _hookProc = HookCallback;
+            _hookId = SetHook(_hookProc);
             _isStarted = true;
         }
 
@@ -136,23 +114,13 @@ namespace FloatWebPlayer.Services
         {
             if (!_isStarted) return;
 
-            UnregisterAllHotkeys();
-
-            _hwndSource?.RemoveHook(WndProc);
-            _hwndSource?.Dispose();
-            _hwndSource = null;
-
-            // 在 UI 线程上关闭窗口
-            if (_messageWindow != null)
+            if (_hookId != IntPtr.Zero)
             {
-                _messageWindow.Dispatcher.Invoke(() =>
-                {
-                    _messageWindow.Close();
-                });
-                _messageWindow = null;
+                UnhookWindowsHookEx(_hookId);
+                _hookId = IntPtr.Zero;
             }
 
-            _hwnd = IntPtr.Zero;
+            _hookProc = null;
             _isStarted = false;
         }
 
@@ -161,81 +129,54 @@ namespace FloatWebPlayer.Services
         #region Private Methods
 
         /// <summary>
-        /// 注册所有快捷键
+        /// 设置键盘钩子
         /// </summary>
-        private void RegisterAllHotkeys()
+        private IntPtr SetHook(LowLevelKeyboardProc proc)
         {
-            if (_hwnd == IntPtr.Zero) return;
-
-            // 注册主键盘快捷键（无修饰键）
-            RegisterHotKey(_hwnd, HOTKEY_SEEK_BACKWARD, MOD_NONE, VK_5);
-            RegisterHotKey(_hwnd, HOTKEY_SEEK_FORWARD, MOD_NONE, VK_6);
-            RegisterHotKey(_hwnd, HOTKEY_TOGGLE_PLAY, MOD_NONE, VK_OEM_3);
-            RegisterHotKey(_hwnd, HOTKEY_DECREASE_OPACITY, MOD_NONE, VK_7);
-            RegisterHotKey(_hwnd, HOTKEY_INCREASE_OPACITY, MOD_NONE, VK_8);
-            RegisterHotKey(_hwnd, HOTKEY_TOGGLE_CLICK_THROUGH, MOD_NONE, VK_0);
+            using var curProcess = Process.GetCurrentProcess();
+            using var curModule = curProcess.MainModule;
+            return SetWindowsHookEx(WH_KEYBOARD_LL, proc, 
+                GetModuleHandle(curModule?.ModuleName), 0);
         }
 
         /// <summary>
-        /// 注销所有快捷键
+        /// 键盘钩子回调
         /// </summary>
-        private void UnregisterAllHotkeys()
+        private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
-            if (_hwnd == IntPtr.Zero) return;
-
-            // 注销主键盘快捷键
-            UnregisterHotKey(_hwnd, HOTKEY_SEEK_BACKWARD);
-            UnregisterHotKey(_hwnd, HOTKEY_SEEK_FORWARD);
-            UnregisterHotKey(_hwnd, HOTKEY_TOGGLE_PLAY);
-            UnregisterHotKey(_hwnd, HOTKEY_DECREASE_OPACITY);
-            UnregisterHotKey(_hwnd, HOTKEY_INCREASE_OPACITY);
-            UnregisterHotKey(_hwnd, HOTKEY_TOGGLE_CLICK_THROUGH);
-        }
-
-        /// <summary>
-        /// 窗口过程，处理 WM_HOTKEY 消息
-        /// </summary>
-        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            if (msg == WM_HOTKEY)
+            if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
             {
-                int hotkeyId = wParam.ToInt32();
-
-                switch (hotkeyId)
+                var hookStruct = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+                
+                // 在 UI 线程上触发事件
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
                 {
-                    case HOTKEY_SEEK_BACKWARD:
-                        SeekBackward?.Invoke(this, EventArgs.Empty);
-                        handled = true;
-                        break;
-
-                    case HOTKEY_SEEK_FORWARD:
-                        SeekForward?.Invoke(this, EventArgs.Empty);
-                        handled = true;
-                        break;
-
-                    case HOTKEY_TOGGLE_PLAY:
-                        TogglePlay?.Invoke(this, EventArgs.Empty);
-                        handled = true;
-                        break;
-
-                    case HOTKEY_DECREASE_OPACITY:
-                        DecreaseOpacity?.Invoke(this, EventArgs.Empty);
-                        handled = true;
-                        break;
-
-                    case HOTKEY_INCREASE_OPACITY:
-                        IncreaseOpacity?.Invoke(this, EventArgs.Empty);
-                        handled = true;
-                        break;
-
-                    case HOTKEY_TOGGLE_CLICK_THROUGH:
-                        ToggleClickThrough?.Invoke(this, EventArgs.Empty);
-                        handled = true;
-                        break;
-                }
+                    switch (hookStruct.vkCode)
+                    {
+                        case VK_5:
+                            SeekBackward?.Invoke(this, EventArgs.Empty);
+                            break;
+                        case VK_6:
+                            SeekForward?.Invoke(this, EventArgs.Empty);
+                            break;
+                        case VK_OEM_3:
+                            TogglePlay?.Invoke(this, EventArgs.Empty);
+                            break;
+                        case VK_7:
+                            DecreaseOpacity?.Invoke(this, EventArgs.Empty);
+                            break;
+                        case VK_8:
+                            IncreaseOpacity?.Invoke(this, EventArgs.Empty);
+                            break;
+                        case VK_0:
+                            ToggleClickThrough?.Invoke(this, EventArgs.Empty);
+                            break;
+                    }
+                });
             }
 
-            return IntPtr.Zero;
+            // 关键：调用 CallNextHookEx 让按键继续传递，不拦截
+            return CallNextHookEx(_hookId, nCode, wParam, lParam);
         }
 
         #endregion

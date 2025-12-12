@@ -14,6 +14,7 @@ namespace FloatWebPlayer
         private PlayerWindow? _playerWindow;
         private ControlBarWindow? _controlBarWindow;
         private HotkeyService? _hotkeyService;
+        private OsdWindow? _osdWindow;
 
         /// <summary>
         /// 默认快进/倒退秒数
@@ -98,6 +99,7 @@ namespace FloatWebPlayer
                 _controlBarWindow.UpdateBackButtonState(_playerWindow.CanGoBack);
                 _controlBarWindow.UpdateForwardButtonState(_playerWindow.CanGoForward);
             };
+
         }
 
         /// <summary>
@@ -111,36 +113,62 @@ namespace FloatWebPlayer
             _hotkeyService.SeekBackward += (s, e) =>
             {
                 _playerWindow?.SeekAsync(-DefaultSeekSeconds);
+                ShowOsd($"-{DefaultSeekSeconds}s", "⏪");
             };
 
             _hotkeyService.SeekForward += (s, e) =>
             {
                 _playerWindow?.SeekAsync(DefaultSeekSeconds);
+                ShowOsd($"+{DefaultSeekSeconds}s", "⏩");
             };
 
             _hotkeyService.TogglePlay += (s, e) =>
             {
                 _playerWindow?.TogglePlayAsync();
+                ShowOsd("播放/暂停", "⏯");
             };
 
             _hotkeyService.DecreaseOpacity += (s, e) =>
             {
                 var opacity = _playerWindow?.DecreaseOpacity();
-                System.Diagnostics.Debug.WriteLine($"[Hotkey] DecreaseOpacity: {opacity}");
+                if (opacity.HasValue)
+                {
+                    ShowOsd($"透明度 {(int)(opacity.Value * 100)}%", "🔅");
+                }
             };
 
             _hotkeyService.IncreaseOpacity += (s, e) =>
             {
                 var opacity = _playerWindow?.IncreaseOpacity();
-                System.Diagnostics.Debug.WriteLine($"[Hotkey] IncreaseOpacity: {opacity}");
+                if (opacity.HasValue)
+                {
+                    ShowOsd($"透明度 {(int)(opacity.Value * 100)}%", "🔆");
+                }
             };
 
             _hotkeyService.ToggleClickThrough += (s, e) =>
             {
-                _playerWindow?.ToggleClickThrough();
+                var isClickThrough = _playerWindow?.ToggleClickThrough();
+                if (isClickThrough.HasValue)
+                {
+                    var msg = isClickThrough.Value ? "鼠标穿透已开启" : "鼠标穿透已关闭";
+                    ShowOsd(msg, "👆");
+                }
             };
 
             _hotkeyService.Start();
+        }
+
+        /// <summary>
+        /// 显示 OSD 提示
+        /// </summary>
+        /// <param name="message">提示文字</param>
+        /// <param name="icon">图标（可选）</param>
+        private void ShowOsd(string message, string? icon = null)
+        {
+            // 延迟初始化 OSD 窗口
+            _osdWindow ??= new OsdWindow();
+            _osdWindow.ShowMessage(message, icon);
         }
 
         /// <summary>

@@ -64,8 +64,12 @@ namespace FloatWebPlayer.Views
         [DllImport("user32.dll")]
         private static extern int GetSystemMetrics(int nIndex);
 
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
         private const int SM_CXSCREEN = 0;
         private const int SM_CYSCREEN = 1;
+        private const int VK_LBUTTON = 0x01;
 
         #endregion
 
@@ -175,6 +179,21 @@ namespace FloatWebPlayer.Views
             InitializeComponent();
             InitializeWindowPosition();
             InitializeAutoShowHide();
+            
+            // 窗口失去激活状态时清除输入框焦点
+            Deactivated += (s, e) =>
+            {
+                if (UrlTextBox.IsFocused)
+                {
+                    // 使用 Dispatcher 延迟执行，确保在窗口状态更新后清除焦点
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () =>
+                    {
+                        Keyboard.ClearFocus();
+                        // 移除输入框的焦点视觉样式
+                        FocusManager.SetFocusedElement(this, null);
+                    });
+                }
+            };
             
             // 窗口关闭时停止定时器
             Closing += (s, e) => StopAutoShowHide();
@@ -467,9 +486,26 @@ namespace FloatWebPlayer.Views
                     {
                         StopHideDelayTimer();
                     }
+                    else if (UrlTextBox.IsFocused)
+                    {
+                        // 输入框聚焦但鼠标不在窗口上
+                        // 检测鼠标左键是否被按下（点击了其他位置）
+                        bool mouseButtonDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+                        if (mouseButtonDown)
+                        {
+                            // 点击了其他位置，清除焦点并移除焦点视觉样式
+                            Keyboard.ClearFocus();
+                            FocusManager.SetFocusedElement(this, null);
+                        }
+                        else
+                        {
+                            // 输入框聚焦时不隐藏
+                            StopHideDelayTimer();
+                        }
+                    }
                     else
                     {
-                        // 不在窗口上，启动延迟隐藏
+                        // 不在窗口上且输入框未聚焦，启动延迟隐藏
                         StartHideDelayTimer();
                     }
                     break;
