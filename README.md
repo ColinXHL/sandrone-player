@@ -1,8 +1,8 @@
 # 🎬 FloatWebPlayer
 
-**A floating web player for Windows, designed for watching tutorial videos while gaming.**
+English | [简体中文](README-zh_CN.md)
 
-**Windows 悬浮网页播放器，专为游戏时观看攻略视频设计。**
+**A floating web player for Windows, designed for watching tutorial videos while gaming.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
@@ -10,25 +10,27 @@
 
 ---
 
-## ✨ Features | 功能特性
+## ✨ Features
 
-- **🪟 Always on Top** - Floating window stays above other applications | 悬浮窗口始终置顶
-- **⌨️ Global Hotkeys** - Control playback without leaving your game | 全局快捷键，无需切换窗口
-- **👻 Mouse Click-Through** - Interact with apps behind the player | 鼠标穿透模式
-- **🎚️ Adjustable Opacity** - Set transparency from 20% to 100% | 透明度可调 (20%-100%)
-- **🎯 Edge Snapping** - Window snaps to screen edges | 窗口边缘吸附
-- **🍪 Cookie Persistence** - Stay logged in to websites | Cookie 持久化，保持登录状态
-- **🎨 Minimal UI** - Clean borderless design with custom controls | 简洁无边框设计
-
----
-
-## 📸 Screenshots | 截图
-
-> *Coming soon... | 即将添加...*
+- **🪟 Always on Top** - Floating window stays above other applications
+- **⌨️ Global Hotkeys** - Control playback without leaving your game (customizable)
+- **👻 Mouse Click-Through** - Interact with apps behind the player
+- **🎚️ Adjustable Opacity** - Set transparency from 20% to 100%
+- **🎯 Edge Snapping** - Window snaps to screen edges
+- **🍪 Cookie Persistence** - Stay logged in to websites
+- **🎨 Minimal UI** - Clean borderless design with custom controls
+- **📚 History & Bookmarks** - Track browsing history and save favorites
+- **⚙️ Settings Window** - Visual configuration interface
 
 ---
 
-## 🖥️ System Requirements | 系统要求
+## 📸 Screenshots
+
+> *Coming soon...*
+
+---
+
+## 🖥️ System Requirements
 
 - **OS**: Windows 10/11
 - **Runtime**: [.NET 8.0 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
@@ -36,44 +38,44 @@
 
 ---
 
-## 📥 Installation | 安装
+## 📥 Installation
 
-### Option 1: Download Release | 下载发布版
+### Option 1: Download Release
 
-> *Release builds coming soon... | 发布版即将推出...*
+> *Release builds coming soon...*
 
-### Option 2: Build from Source | 从源码构建
+### Option 2: Build from Source
 
 ```powershell
-# Clone the repository | 克隆仓库
+# Clone the repository
 git clone https://github.com/ColinXHL/float-web-player.git
 cd float-web-player
 
-# Build | 构建
+# Build
 dotnet build -c Release
 
-# Run | 运行
+# Run
 dotnet run --project FloatWebPlayer
 ```
 
 ---
 
-## ⌨️ Default Hotkeys | 默认快捷键
+## ⌨️ Default Hotkeys
 
-| Key | Function | 功能 |
-|-----|----------|------|
-| `` ` `` | Play / Pause | 播放 / 暂停 |
-| `5` | Seek Backward (5s) | 后退 5 秒 |
-| `6` | Seek Forward (5s) | 前进 5 秒 |
-| `7` | Decrease Opacity | 降低透明度 |
-| `8` | Increase Opacity | 增加透明度 |
-| `0` | Toggle Click-Through | 切换鼠标穿透 |
+| Key | Function |
+|-----|----------|
+| `` ` `` | Play / Pause |
+| `5` | Seek Backward (5s) |
+| `6` | Seek Forward (5s) |
+| `7` | Decrease Opacity |
+| `8` | Increase Opacity |
+| `0` | Toggle Click-Through |
 
-> ⚠️ Hotkeys are disabled when typing in text fields. | 在输入框中输入时快捷键自动禁用。
+> 💡 Hotkeys are fully customizable in Settings. Modifier keys (Ctrl, Alt, Shift) are supported.
 
 ---
 
-## 🛠️ Tech Stack | 技术栈
+## 🛠️ Tech Stack
 
 | Component | Technology |
 |-----------|------------|
@@ -85,51 +87,50 @@ dotnet run --project FloatWebPlayer
 
 ---
 
-## 📁 Project Structure | 项目结构
+## 📁 Project Structure
 
 ```
 FloatWebPlayer/
-├── Views/              # WPF Windows (Player, ControlBar, OSD)
-├── Services/           # HotkeyService, etc.
-├── Helpers/            # Win32Helper, ScriptInjector
-├── Models/             # Data models
+├── Views/              # WPF Windows (Player, ControlBar, OSD, History, Bookmark, Settings)
+├── Services/           # HotkeyService, ProfileManager, DataService, WindowStateService
+├── Helpers/            # Win32Helper, ScriptInjector, AnimatedWindow
+├── Models/             # AppConfig, GameProfile, HotkeyBinding, etc.
 ├── Scripts/            # Injected JS/CSS for WebView2
 └── docs/               # Design documents
 ```
 
 ---
 
-## 🚧 Development Status | 开发状态
+## 🚧 Development Status
 
 - [x] Basic player window with WebView2
 - [x] Floating control bar (top of screen)
-- [x] Global hotkey support
+- [x] Global hotkey support (customizable)
 - [x] Opacity adjustment
 - [x] Mouse click-through mode
 - [x] OSD notifications
-- [ ] Edge snapping
-- [ ] History & Bookmarks
-- [ ] Settings window
+- [x] Edge snapping
+- [x] History & Bookmarks
+- [x] Settings window
+- [ ] Auto cursor detection (auto opacity)
+- [ ] Process detection + Profile auto-switch
+- [ ] External tools launcher
 
 ---
 
-## 🤝 Contributing | 贡献
+## 🤝 Contributing
 
 Issues and Pull Requests are welcome!
 
-欢迎提交 Issue 和 Pull Request！
-
 ---
 
-## 📄 License | 许可证
+## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
 
-本项目采用 [MIT 许可证](LICENSE) 开源。
-
 ---
 
-## 🙏 Acknowledgments | 致谢
+## 🙏 Acknowledgments
 
 - [Microsoft WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
 - [Bilibili](https://www.bilibili.com/) - Primary use case inspiration
