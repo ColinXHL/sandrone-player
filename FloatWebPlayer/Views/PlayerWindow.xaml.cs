@@ -179,11 +179,7 @@ namespace FloatWebPlayer.Views
         /// </summary>
         private static string GetUserDataFolder()
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "FloatWebPlayer",
-                "WebView2Data"
-            );
+            return AppPaths.WebView2DataDirectory;
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using FloatWebPlayer.Helpers;
 using FloatWebPlayer.Models;
 
 namespace FloatWebPlayer.Services
@@ -63,14 +64,8 @@ namespace FloatWebPlayer.Services
 
         private ConfigService()
         {
-            // 配置文件路径：Data/config.json
-            var dataDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "FloatWebPlayer",
-                "Data"
-            );
-            Directory.CreateDirectory(dataDir);
-            ConfigFilePath = Path.Combine(dataDir, "config.json");
+            // 配置文件路径：User/Data/config.json
+            ConfigFilePath = AppPaths.ConfigFilePath;
 
             // 加载配置
             Config = Load();

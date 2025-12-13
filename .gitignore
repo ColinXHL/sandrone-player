@@ -112,3 +112,9 @@ config.json
 window_state.json
 data.db
 WebView2Data/
+
+# User data directory (portable mode)
+**/User/
+
+# Publish output
+**/publish/

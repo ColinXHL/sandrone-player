@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using FloatWebPlayer.Helpers;
 using FloatWebPlayer.Models;
 
 namespace FloatWebPlayer.Services
@@ -74,16 +75,9 @@ namespace FloatWebPlayer.Services
 
         private ProfileManager()
         {
-            // 数据目录：AppData/Local/FloatWebPlayer/Data
-            DataDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "FloatWebPlayer",
-                "Data"
-            );
-            ProfilesDirectory = Path.Combine(DataDirectory, "Profiles");
-
-            // 确保目录存在
-            EnsureDirectoriesExist();
+            // 数据目录：User/Data/
+            DataDirectory = AppPaths.DataDirectory;
+            ProfilesDirectory = AppPaths.ProfilesDirectory;
 
             // 加载所有 Profile
             LoadAllProfiles();
@@ -179,15 +173,6 @@ namespace FloatWebPlayer.Services
         #endregion
 
         #region Private Methods
-
-        /// <summary>
-        /// 确保必要目录存在
-        /// </summary>
-        private void EnsureDirectoriesExist()
-        {
-            Directory.CreateDirectory(DataDirectory);
-            Directory.CreateDirectory(ProfilesDirectory);
-        }
 
         /// <summary>
         /// 加载所有 Profile
