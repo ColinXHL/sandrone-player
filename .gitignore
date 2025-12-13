@@ -118,3 +118,6 @@ WebView2Data/
 
 # Publish output
 **/publish/
+
+# Release packages
+*.zip
