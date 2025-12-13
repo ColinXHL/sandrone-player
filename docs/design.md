@@ -279,6 +279,98 @@ HotkeyBinding (快捷键绑定)
 
 ---
 
+### 游戏内鼠标指针检测（自动透明度）
+
+**应用场景**：原神等游戏中，行走/战斗时无鼠标指针，打开菜单/活动界面时显示指针。当指针显示时自动降低 WebView 透明度，方便同时查看游戏 UI 和攻略视频。
+
+#### 检测方案
+
+使用 `GetCursorInfo` Win32 API 检测系统光标是否显示：
+
+```csharp
+[DllImport("user32.dll")]
+private static extern bool GetCursorInfo(out CURSORINFO pci);
+
+[StructLayout(LayoutKind.Sequential)]
+public struct CURSORINFO
+{
+    public int cbSize;
+    public int flags;        // 0 = 隐藏, 1 = 显示
+    public IntPtr hCursor;
+    public POINT ptScreenPos;
+}
+
+public const int CURSOR_SHOWING = 0x00000001;
+
+public static bool IsCursorVisible()
+{
+    var ci = new CURSORINFO { cbSize = Marshal.SizeOf<CURSORINFO>() };
+    if (GetCursorInfo(out ci))
+    {
+        return (ci.flags & CURSOR_SHOWING) != 0;
+    }
+    return true; // 默认显示
+}
+```
+
+#### 触发逻辑
+
+| 条件 | 行为 |
+|------|------|
+| 鼠标指针显示 | WebView 降至最低透明度（如 20%） |
+| 鼠标指针隐藏 | WebView 恢复正常透明度 |
+| 非目标进程前台 | 不执行检测 |
+
+#### 实现方式
+
+**定时器轮询**（推荐，简单可靠）：
+
+```csharp
+private DispatcherTimer _cursorCheckTimer;
+private double _normalOpacity = 0.8;
+private double _minOpacity = 0.2;
+
+private void StartCursorMonitor()
+{
+    _cursorCheckTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+    _cursorCheckTimer.Tick += (s, e) =>
+    {
+        // 仅当目标进程（如原神）在前台时检测
+        var processName = Win32Helper.GetForegroundWindowProcessName();
+        if (!IsTargetProcess(processName)) return;
+
+        var visible = Win32Helper.IsCursorVisible();
+        if (visible && _currentOpacity > _minOpacity)
+            SetOpacity(_minOpacity);
+        else if (!visible && _currentOpacity < _normalOpacity)
+            SetOpacity(_normalOpacity);
+    };
+    _cursorCheckTimer.Start();
+}
+```
+
+#### 配置项
+
+在 `profile.json` 中支持配置：
+
+```json
+{
+  "cursorDetection": {
+    "enabled": true,
+    "minOpacity": 0.2,
+    "checkIntervalMs": 200
+  }
+}
+```
+
+#### 注意事项
+
+- **前台进程判断**：只在配置的目标游戏前台时启用检测
+- **Debounce 防抖**：添加短暂延迟避免频繁切换导致闪烁
+- **游戏兼容性**：某些游戏可能使用自定义光标，需实测验证
+
+---
+
 ### 4. 操作提示（OSD）
 
 - **触发条件**：所有快捷键操作（输入模式下不触发）
@@ -920,3 +1012,4 @@ float-web-player-profiles/
 | v0.1 | 2025-12-12 | 初始设计文档 |
 | v0.2 | 2025-12-12 | 更新脚本注入架构，CSS/JS 分离，添加 DOM 就绪检测机制 |
 | v0.3 | 2025-12-12 | 新增插件系统设计（Game Profile），含配置结构、架构图、分阶段计划、仓库订阅机制 |
+| v0.4 | 2025-12-13 | 新增游戏内鼠标指针检测功能设计，支持自动透明度调节 |
