@@ -60,6 +60,24 @@ namespace FloatWebPlayer.Helpers
         /// </summary>
         public static string SubscriptionsFilePath { get; }
 
+        /// <summary>
+        /// 全局插件库目录（User/Data/InstalledPlugins/）
+        /// 存放所有已安装插件的本体文件
+        /// </summary>
+        public static string InstalledPluginsDirectory { get; }
+
+        /// <summary>
+        /// 插件库索引文件路径（User/Data/library.json）
+        /// 存放全局插件库的索引信息
+        /// </summary>
+        public static string LibraryIndexPath { get; }
+
+        /// <summary>
+        /// 插件-Profile关联索引文件路径（User/Data/associations.json）
+        /// 存放插件与Profile的映射关系
+        /// </summary>
+        public static string AssociationsFilePath { get; }
+
         static AppPaths()
         {
             // 获取应用程序目录
@@ -89,6 +107,15 @@ namespace FloatWebPlayer.Helpers
             // 订阅配置文件路径
             SubscriptionsFilePath = Path.Combine(DataDirectory, "subscriptions.json");
 
+            // 全局插件库目录
+            InstalledPluginsDirectory = Path.Combine(DataDirectory, "InstalledPlugins");
+
+            // 插件库索引文件路径
+            LibraryIndexPath = Path.Combine(DataDirectory, "library.json");
+
+            // 插件-Profile关联索引文件路径
+            AssociationsFilePath = Path.Combine(DataDirectory, "associations.json");
+
             // 确保目录存在
             EnsureDirectoriesExist();
         }
@@ -102,6 +129,7 @@ namespace FloatWebPlayer.Helpers
             Directory.CreateDirectory(WebView2DataDirectory);
             Directory.CreateDirectory(DataDirectory);
             Directory.CreateDirectory(ProfilesDirectory);
+            Directory.CreateDirectory(InstalledPluginsDirectory);
         }
     }
 }
