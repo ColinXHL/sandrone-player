@@ -99,9 +99,67 @@ namespace FloatWebPlayer.Services
 
         /// <summary>
         /// 加载指定 Profile 的所有插件
+        /// 使用新的清单化架构：从 PluginAssociationManager 获取插件引用，从 PluginLibrary 获取插件目录
         /// </summary>
         /// <param name="profileId">Profile ID</param>
         public void LoadPluginsForProfile(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId))
+                return;
+
+            // 如果已有插件加载，先卸载
+            if (_loadedPlugins.Count > 0)
+            {
+                UnloadAllPlugins();
+            }
+
+            _currentProfileId = profileId;
+
+            // 1. 从 PluginAssociationManager 获取 Profile 的插件引用
+            var pluginReferences = PluginAssociationManager.Instance.GetPluginsInProfile(profileId);
+            if (pluginReferences.Count == 0)
+            {
+                Log($"Profile '{profileId}' 没有关联任何插件");
+                return;
+            }
+
+            // 2. 遍历启用的插件引用
+            foreach (var reference in pluginReferences)
+            {
+                // 跳过禁用的插件
+                if (!reference.Enabled)
+                {
+                    Log($"插件 {reference.PluginId} 已禁用，跳过加载");
+                    continue;
+                }
+
+                // 3. 检查插件是否已安装（从 PluginLibrary）
+                if (!PluginLibrary.Instance.IsInstalled(reference.PluginId))
+                {
+                    Log($"插件 {reference.PluginId} 未安装，跳过加载");
+                    continue;
+                }
+
+                // 4. 从 PluginLibrary 获取插件目录
+                var pluginDir = PluginLibrary.Instance.GetPluginDirectory(reference.PluginId);
+
+                // 5. 获取 Profile 特定的配置目录
+                var configDir = GetPluginConfigDirectory(profileId, reference.PluginId);
+
+                // 6. 加载插件
+                LoadPlugin(pluginDir, configDir, reference.PluginId);
+            }
+
+            Log($"已加载 {_loadedPlugins.Count} 个插件 (Profile: {profileId})");
+        }
+
+        /// <summary>
+        /// 加载指定 Profile 的所有插件（旧方法，保留向后兼容）
+        /// 使用 SubscriptionManager 获取订阅的插件列表
+        /// </summary>
+        /// <param name="profileId">Profile ID</param>
+        [Obsolete("使用 LoadPluginsForProfile(profileId) 代替，新方法使用 PluginAssociationManager")]
+        public void LoadPluginsForProfileLegacy(string profileId)
         {
             if (string.IsNullOrWhiteSpace(profileId))
                 return;
