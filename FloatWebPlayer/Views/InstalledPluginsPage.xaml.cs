@@ -125,33 +125,17 @@ namespace FloatWebPlayer.Views
         {
             if (sender is Button btn && btn.Tag is string pluginId)
             {
-                var profiles = PluginAssociationManager.Instance.GetProfilesUsingPlugin(pluginId);
-                
-                string message;
-                if (profiles.Count > 0)
-                {
-                    message = $"该插件被以下 Profile 引用：\n\n• {string.Join("\n• ", profiles)}\n\n卸载后，这些 Profile 中将移除该插件的引用。\n\n确定要卸载吗？";
-                }
-                else
-                {
-                    message = $"确定要卸载插件 \"{pluginId}\" 吗？";
-                }
+                // 获取插件名称用于显示
+                var pluginInfo = PluginLibrary.Instance.GetInstalledPluginInfo(pluginId);
+                var pluginName = pluginInfo?.Name ?? pluginId;
 
-                var result = MessageBox.Show(message, "确认卸载", 
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                // 显示卸载确认对话框
+                var dialog = new UninstallConfirmDialog(pluginId, pluginName);
+                dialog.Owner = Window.GetWindow(this);
                 
-                if (result == MessageBoxResult.Yes)
+                if (dialog.ShowDialog() == true && dialog.UninstallSucceeded)
                 {
-                    var uninstallResult = PluginLibrary.Instance.UninstallPlugin(pluginId, force: true);
-                    if (uninstallResult.IsSuccess)
-                    {
-                        RefreshPluginList();
-                    }
-                    else
-                    {
-                        MessageBox.Show($"卸载失败: {uninstallResult.ErrorMessage}", "错误",
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    RefreshPluginList();
                 }
             }
         }
