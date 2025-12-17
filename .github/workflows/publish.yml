@@ -68,14 +68,15 @@ jobs:
 
       - name: 🧹 Collect publish files
         run: |
-          $src = "FloatWebPlayer/bin/Release/net8.0-windows/win-x64/publish\*"
-          $dst = "dist/FloatWebPlayer"
-
-          New-Item $dst -ItemType Directory -Force | Out-Null
-          Copy-Item $src $dst -Recurse -Force
-
-          # 清理调试垃圾
-          Get-ChildItem $dst -Recurse -Include *.pdb,*.lib | Remove-Item -Force
+          $sourceDir = ".\FloatWebPlayer\bin\Release\net8.0-windows\win-x64\publish"
+          # 清理 dist/FloatWebPlayer 目录，避免权限问题
+          if (Test-Path ".\dist\FloatWebPlayer") {
+              Remove-Item -Recurse -Force ".\dist\FloatWebPlayer"
+          }
+          New-Item -ItemType Directory -Path ".\dist\FloatWebPlayer"
+          Copy-Item "$sourceDir\*" ".\dist\FloatWebPlayer" -Recurse -Force
+          # 可选：删除无用文件
+          Get-ChildItem ".\dist\FloatWebPlayer" -Recurse -Include *.pdb,*.lib | Remove-Item -Force
 
       - name: 📦 Pack 7z
         run: |
