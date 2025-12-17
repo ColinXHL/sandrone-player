@@ -3,11 +3,11 @@
     {
       "id": "github",
       "name": "GitHub",
-      "uri": "https://github.com/Sheep/FloatWebPlayer/releases/download/v${version}/FloatWebPlayer.Install.${version}.exe"
+      "uri": "https://github.com/ColinXHL/FloatWebPlayer/releases/download/v${version}/FloatWebPlayer.Install.${version}.exe"
     }
   ],
   "appName": "FloatWebPlayer",
-  "publisher": "Sheep",
+  "publisher": "ColinXHL",
   "regName": "FloatWebPlayer",
   "exeName": "FloatWebPlayer.exe",
   "updaterName": "FloatWebPlayer.update.exe",

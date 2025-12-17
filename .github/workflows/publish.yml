@@ -68,12 +68,11 @@ jobs:
 
       - name: 🧹 Collect publish files
         run: |
-          $src = "FloatWebPlayer/bin/Release/net8.0-windows/win-x64/publish"
+          $src = "FloatWebPlayer/bin/Release/net8.0-windows/win-x64/publish\*"
           $dst = "dist/FloatWebPlayer"
 
           New-Item $dst -ItemType Directory -Force | Out-Null
-
-          Copy-Item "$src\*" $dst -Recurse -Force
+          Copy-Item $src $dst -Recurse -Force
 
           # 清理调试垃圾
           Get-ChildItem $dst -Recurse -Include *.pdb,*.lib | Remove-Item -Force
