@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:helpers="clr-namespace:AkashaNavigator.Helpers"
         Title="关于"
-        Width="320"
-        Height="240"
+        Width="360"
+        Height="300"
         WindowStartupLocation="CenterScreen"
         Foreground="White"
         ResizeMode="NoResize">
@@ -61,7 +61,10 @@
         </Style>
     </helpers:AnimatedWindow.Resources>
 
-    <Border Background="#1E1E1E" CornerRadius="8">
+    <Border x:Name="MainContainer" Background="#1E1E1E" CornerRadius="8" Margin="16" RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <ScaleTransform x:Name="ContainerScale" ScaleX="1" ScaleY="1"/>
+        </Border.RenderTransform>
         <Border.Effect>
             <DropShadowEffect BlurRadius="20" ShadowDepth="0" Opacity="0.6" Color="Black"/>
         </Border.Effect>
@@ -85,9 +88,11 @@
             </Border>
 
             <!-- 内容区 -->
-            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+            <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24,16">
                 <!-- 应用图标 -->
-                <TextBlock Text="🎬" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                <Image Source="/Assets/akasha-navigator-logo.png" Width="64" Height="64" 
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       HorizontalAlignment="Center" Margin="0,0,0,12"/>
                 
                 <!-- 应用名称 -->
                 <TextBlock Text="AkashaNavigator" FontSize="20" FontWeight="Bold" 
@@ -105,6 +110,14 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <TextBlock Text="作者：" FontSize="12" Foreground="#888"/>
                     <TextBlock Text="羊汪汪" FontSize="12" Foreground="#AAA"/>
+                </StackPanel>
+                
+                <!-- GitHub 链接 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                    <TextBlock Text="GitHub：" FontSize="12" Foreground="#888" VerticalAlignment="Center"/>
+                    <Button Content="ColinXHL/akasha-navigator" 
+                            Style="{StaticResource LinkButtonStyle}"
+                            Click="BtnGitHub_Click"/>
                 </StackPanel>
             </StackPanel>
         </Grid>
