@@ -120,8 +120,9 @@ public class PluginConfig
                                  JsonArray => node.Deserialize<List<object?>>(_jsonOptions),
                                  _ => null };
         }
-        catch
+        catch (Exception ex)
         {
+            Services.LogService.Instance.Error("PluginConfig", $"GetRaw({key}) failed: {ex.Message}");
             return null;
         }
     }

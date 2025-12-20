@@ -265,9 +265,9 @@ public class SettingsUiRenderer
         // 应用圆角样式
         ApplyRoundedTextBoxStyle(textBox);
 
-        // 加载当前值或默认值
-        var defaultValue = item.GetDefaultValue<double?>() ?? 0;
-        var currentValue = GetConfigValue(item.Key, defaultValue);
+        // 加载当前值或默认值（强制取整）
+        var defaultValue = (int)(item.GetDefaultValue<double?>() ?? 0);
+        var currentValue = (int)GetConfigValue(item.Key, (double)defaultValue);
         textBox.Text = currentValue.ToString();
 
         // 增减按钮
@@ -276,16 +276,16 @@ public class SettingsUiRenderer
         Grid.SetColumn(btnDecrease, 1);
         Grid.SetColumn(btnIncrease, 2);
 
-        var step = item.Step ?? 1;
-        var min = item.Min ?? double.MinValue;
-        var max = item.Max ?? double.MaxValue;
+        var step = (int)(item.Step ?? 1);
+        var min = (int)(item.Min ?? int.MinValue);
+        var max = (int)(item.Max ?? int.MaxValue);
 
-        // 值变更处理
+        // 值变更处理（强制取整）
         Action updateValue = () =>
         {
-            if (double.TryParse(textBox.Text, out var value))
+            if (double.TryParse(textBox.Text, out var rawValue))
             {
-                value = Math.Max(min, Math.Min(max, value));
+                var value = (int)Math.Max(min, Math.Min(max, rawValue));
                 textBox.Text = value.ToString();
                 if (!string.IsNullOrEmpty(item.Key))
                 {
@@ -303,7 +303,7 @@ public class SettingsUiRenderer
 
         btnDecrease.Click += (s, e) =>
         {
-            if (double.TryParse(textBox.Text, out var value))
+            if (int.TryParse(textBox.Text, out var value))
             {
                 value = Math.Max(min, value - step);
                 textBox.Text = value.ToString();
@@ -316,7 +316,7 @@ public class SettingsUiRenderer
 
         btnIncrease.Click += (s, e) =>
         {
-            if (double.TryParse(textBox.Text, out var value))
+            if (int.TryParse(textBox.Text, out var value))
             {
                 value = Math.Min(max, value + step);
                 textBox.Text = value.ToString();
@@ -931,7 +931,8 @@ public class SettingsUiRenderer
             var numValue = _config.Get<double?>(key, null);
             if (numValue.HasValue)
             {
-                textBox.Text = numValue.Value.ToString();
+                // 强制取整显示
+                textBox.Text = ((int)numValue.Value).ToString();
             }
             else
             {
@@ -947,7 +948,7 @@ public class SettingsUiRenderer
                     var defaultNum = item?.GetDefaultValue<double?>();
                     if (defaultNum.HasValue)
                     {
-                        textBox.Text = defaultNum.Value.ToString();
+                        textBox.Text = ((int)defaultNum.Value).ToString();
                     }
                     else
                     {

@@ -50,16 +50,6 @@ public partial class InstalledPluginsPage : UserControl
     }
 
     /// <summary>
-    /// 检查插件是否有设置UI
-    /// </summary>
-    private bool HasSettingsUi(string pluginId)
-    {
-        var pluginDir = PluginLibrary.Instance.GetPluginDirectory(pluginId);
-        var settingsUiPath = Path.Combine(pluginDir, "settings_ui.json");
-        return File.Exists(settingsUiPath);
-    }
-
-    /// <summary>
     /// 搜索框文本变化
     /// </summary>
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -122,8 +112,7 @@ public partial class InstalledPluginsPage : UserControl
                                 Author = p.Author,
                                 ReferenceCount = PluginAssociationManager.Instance.GetPluginReferenceCount(p.Id),
                                 ProfilesText = GetProfilesText(p.Id),
-                                HasDescription = !string.IsNullOrWhiteSpace(p.Description),
-                                HasSettingsUi = HasSettingsUi(p.Id)
+                                HasDescription = !string.IsNullOrWhiteSpace(p.Description)
                             };
 
                             // 设置更新信息
@@ -140,33 +129,6 @@ public partial class InstalledPluginsPage : UserControl
         PluginList.ItemsSource = viewModels;
         PluginCountText.Text = $"共 {viewModels.Count} 个插件";
         NoPluginsText.Visibility = viewModels.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// 设置按钮点击（全局默认配置）
-    /// </summary>
-    private void BtnSettings_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is string pluginId)
-        {
-            // 获取插件信息
-            var pluginInfo = PluginLibrary.Instance.GetInstalledPluginInfo(pluginId);
-            if (pluginInfo == null)
-            {
-                NotificationService.Instance.Show($"找不到插件 {pluginId}", NotificationType.Error);
-                return;
-            }
-
-            // 获取插件源码目录（同时也是全局配置目录）
-            var pluginDirectory = PluginLibrary.Instance.GetPluginDirectory(pluginId);
-
-            // 全局配置保存在插件库目录中
-            var configDirectory = pluginDirectory;
-
-            // 打开插件设置窗口
-            PluginSettingsWindow.ShowSettings(pluginId, pluginInfo.Name, pluginDirectory, configDirectory,
-                                              Window.GetWindow(this));
-        }
     }
 
     /// <summary>
@@ -253,9 +215,7 @@ public class InstalledPluginViewModel
     public int ReferenceCount { get; set; }
     public string ProfilesText { get; set; } = "无";
     public bool HasDescription { get; set; }
-    public bool HasSettingsUi { get; set; }
     public Visibility HasDescriptionVisibility => HasDescription ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility HasSettingsUiVisibility => HasSettingsUi ? Visibility.Visible : Visibility.Collapsed;
 
     // 更新相关属性
     /// <summary>

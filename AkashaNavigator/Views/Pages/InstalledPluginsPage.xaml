@@ -131,9 +131,6 @@
                                         <Button Content="{Binding UpdateButtonText}" Style="{StaticResource LocalPrimaryButtonStyle}"
                                                 Click="BtnUpdate_Click" Tag="{Binding Id}"
                                                 Visibility="{Binding UpdateButtonVisibility}" Margin="0,0,8,0"/>
-                                        <Button Content="⚙ 设置" Style="{StaticResource ActionButtonStyle}"
-                                                Click="BtnSettings_Click" Tag="{Binding Id}"
-                                                Visibility="{Binding HasSettingsUi, Converter={StaticResource BoolToVisibilityConverter}}" Margin="0,0,8,0"/>
                                         <Button Content="➕ 添加到 Profile" Style="{StaticResource ActionButtonStyle}"
                                                 Click="BtnAddToProfile_Click" Tag="{Binding Id}" Margin="0,0,8,0"/>
                                         <Button Content="🗑 卸载" Style="{StaticResource LocalDangerButtonStyle}"

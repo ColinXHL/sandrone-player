@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using Microsoft.ClearScript;
 using AkashaNavigator.Services;
 using AkashaNavigator.Views.Windows;
 
@@ -46,11 +45,10 @@ public class OverlayApi
     /// </summary>
     /// <param name="x">X 坐标</param>
     /// <param name="y">Y 坐标</param>
-    [ScriptMember("setPosition")]
-    public void SetPosition(int x, int y)
+    public void setPosition(double x, double y)
     {
         EnsureOverlay();
-        InvokeOnUI(() => _overlay?.SetPosition(x, y));
+        InvokeOnUI(() => _overlay?.SetPosition((int)x, (int)y));
     }
 
     /// <summary>
@@ -58,22 +56,20 @@ public class OverlayApi
     /// </summary>
     /// <param name="width">宽度</param>
     /// <param name="height">高度</param>
-    [ScriptMember("setSize")]
-    public void SetSize(int width, int height)
+    public void setSize(double width, double height)
     {
         if (width <= 0 || height <= 0)
             return;
 
         EnsureOverlay();
-        InvokeOnUI(() => _overlay?.SetSize(width, height));
+        InvokeOnUI(() => _overlay?.SetSize((int)width, (int)height));
     }
 
     /// <summary>
     /// 获取覆盖层窗口的位置和大小（逻辑像素）
     /// </summary>
     /// <returns>包含 x, y, width, height 的对象</returns>
-    [ScriptMember("getRect")]
-    public object GetRect()
+    public object getRect()
     {
         EnsureOverlay();
 
@@ -101,8 +97,7 @@ public class OverlayApi
     /// <summary>
     /// 显示覆盖层窗口
     /// </summary>
-    [ScriptMember("show")]
-    public void Show()
+    public void show()
     {
         EnsureOverlay();
         InvokeOnUI(() => _overlay?.Show());
@@ -111,8 +106,7 @@ public class OverlayApi
     /// <summary>
     /// 隐藏覆盖层窗口
     /// </summary>
-    [ScriptMember("hide")]
-    public void Hide()
+    public void hide()
     {
         InvokeOnUI(() => _overlay?.Hide());
     }
@@ -126,8 +120,7 @@ public class OverlayApi
     /// </summary>
     /// <param name="direction">方向：north/northeast/east/southeast/south/southwest/west/northwest</param>
     /// <param name="duration">显示时长（毫秒），0 表示常驻</param>
-    [ScriptMember("showMarker")]
-    public void ShowMarker(string direction, object? durationObj = null)
+    public void showMarker(string direction, object? durationObj = null)
     {
         // 将 duration 转换为 int，支持从 JavaScript 传入的各种数字类型
         int duration = 0;
@@ -178,8 +171,7 @@ public class OverlayApi
     /// <summary>
     /// 清除所有方向标记
     /// </summary>
-    [ScriptMember("clearMarkers")]
-    public void ClearMarkers()
+    public void clearMarkers()
     {
         InvokeOnUI(() => _overlay?.ClearMarkers());
     }
@@ -189,8 +181,7 @@ public class OverlayApi
     /// </summary>
     /// <param name="size">标记大小（像素），范围 16-64</param>
     /// <param name="color">标记颜色（十六进制，如 #FFFF6B6B）</param>
-    [ScriptMember("setMarkerStyle")]
-    public void SetMarkerStyle(double size, string color)
+    public void setMarkerStyle(double size, string color)
     {
         EnsureOverlay();
         InvokeOnUI(() => _overlay?.SetMarkerStyle(size, color));
@@ -200,19 +191,19 @@ public class OverlayApi
     /// 设置标记样式（从选项对象）
     /// </summary>
     /// <param name="options">样式选项对象，包含 size 和 color 属性</param>
-    public void SetMarkerStyle(object? options)
+    public void setMarkerStyle(object? options)
     {
         Services.LogService.Instance.Debug("OverlayApi",
-                                           $"SetMarkerStyle(object) called, options is null = {options == null}");
+                                           $"setMarkerStyle(object) called, options is null = {options == null}");
 
         if (options == null)
             return;
 
         Services.LogService.Instance.Debug("OverlayApi",
-                                           $"SetMarkerStyle: options type = {options.GetType().FullName}");
+                                           $"setMarkerStyle: options type = {options.GetType().FullName}");
 
         var dict = ConvertToDictionary(options);
-        Services.LogService.Instance.Debug("OverlayApi", $"SetMarkerStyle: dict is null = {dict == null}");
+        Services.LogService.Instance.Debug("OverlayApi", $"setMarkerStyle: dict is null = {dict == null}");
 
         if (dict == null)
             return;
@@ -223,15 +214,15 @@ public class OverlayApi
         if (dict.TryGetValue("size", out var sizeValue) && sizeValue != null)
         {
             Services.LogService.Instance.Debug(
-                "OverlayApi", $"SetMarkerStyle: sizeValue = {sizeValue}, type = {sizeValue.GetType().Name}");
+                "OverlayApi", $"setMarkerStyle: sizeValue = {sizeValue}, type = {sizeValue.GetType().Name}");
             size = Convert.ToDouble(sizeValue);
         }
         if (dict.TryGetValue("color", out var colorValue) && colorValue != null)
             color = colorValue.ToString() ?? "#FFFF6B6B";
 
-        Services.LogService.Instance.Debug("OverlayApi", $"SetMarkerStyle: calling SetMarkerStyle({size}, {color})");
-        SetMarkerStyle(size, color);
-        Services.LogService.Instance.Debug("OverlayApi", "SetMarkerStyle: completed");
+        Services.LogService.Instance.Debug("OverlayApi", $"setMarkerStyle: calling setMarkerStyle({size}, {color})");
+        setMarkerStyle(size, color);
+        Services.LogService.Instance.Debug("OverlayApi", "setMarkerStyle: completed");
     }
 
     /// <summary>
@@ -239,8 +230,7 @@ public class OverlayApi
     /// </summary>
     /// <param name="path">图片路径（相对于插件目录或绝对路径），图片应指向右/东方向</param>
     /// <returns>是否设置成功</returns>
-    [ScriptMember("setMarkerImage")]
-    public bool SetMarkerImage(string path)
+    public bool setMarkerImage(string path)
     {
         Services.LogService.Instance.Debug("OverlayApi", $"SetMarkerImage called with path: {path}");
         Services.LogService.Instance.Debug("OverlayApi", $"Plugin directory: {_context.PluginDirectory}");
@@ -298,8 +288,7 @@ public class OverlayApi
     /// <param name="y">Y 坐标</param>
     /// <param name="options">样式选项（可选）</param>
     /// <returns>元素 ID</returns>
-    [ScriptMember("drawText")]
-    public string DrawText(string text, double x, double y, object? options = null)
+    public string drawText(string text, double x, double y, object? options = null)
     {
         if (string.IsNullOrEmpty(text))
             return string.Empty;
@@ -328,8 +317,7 @@ public class OverlayApi
     /// <param name="height">高度</param>
     /// <param name="options">样式选项（可选）</param>
     /// <returns>元素 ID</returns>
-    [ScriptMember("drawRect")]
-    public string DrawRect(double x, double y, double width, double height, object? options = null)
+    public string drawRect(double x, double y, double width, double height, object? options = null)
     {
         if (width <= 0 || height <= 0)
             return string.Empty;
@@ -357,8 +345,7 @@ public class OverlayApi
     /// <param name="y">Y 坐标</param>
     /// <param name="options">样式选项（可选）</param>
     /// <returns>元素 ID，失败返回空字符串</returns>
-    [ScriptMember("drawImage")]
-    public string DrawImage(string path, double x, double y, object? options = null)
+    public string drawImage(string path, double x, double y, object? options = null)
     {
         if (string.IsNullOrEmpty(path))
             return string.Empty;
@@ -395,8 +382,7 @@ public class OverlayApi
     /// 移除指定绘图元素
     /// </summary>
     /// <param name="elementId">元素 ID</param>
-    [ScriptMember("removeElement")]
-    public void RemoveElement(string elementId)
+    public void removeElement(string elementId)
     {
         if (string.IsNullOrEmpty(elementId))
             return;
@@ -408,8 +394,7 @@ public class OverlayApi
     /// <summary>
     /// 清除该插件的所有绘图元素
     /// </summary>
-    [ScriptMember("clear")]
-    public void Clear()
+    public void clear()
     {
         InvokeOnUI(() =>
                    { _overlay?.ClearDrawingElements(); });
@@ -423,8 +408,7 @@ public class OverlayApi
     /// 进入编辑模式
     /// 编辑模式下可拖拽移动和缩放覆盖层
     /// </summary>
-    [ScriptMember("enterEditMode")]
-    public void EnterEditMode()
+    public void enterEditMode()
     {
         EnsureOverlay();
         InvokeOnUI(() =>
@@ -441,8 +425,7 @@ public class OverlayApi
     /// 退出编辑模式
     /// 退出时自动保存位置和大小到配置
     /// </summary>
-    [ScriptMember("exitEditMode")]
-    public void ExitEditMode()
+    public void exitEditMode()
     {
         InvokeOnUI(() =>
                    {
@@ -483,21 +466,16 @@ public class OverlayApi
                        {
                            // 从配置读取初始位置和大小
                            // 使用 overlay.size 保持与 settings_ui.json 和 main.js 的一致性
-                           var x = _configApi.Get("overlay.x", 50);
-                           var y = _configApi.Get("overlay.y", 50);
-                           var size = _configApi.Get("overlay.size", 200);
-
-                           Services.LogService.Instance.Debug(
-                               "OverlayApi", $"EnsureOverlay: Creating overlay at ({x}, {y}) size ({size})");
+                           // 注意：必须显式转换为 object 类型，避免 C# 编译器选择泛型版本 Get<T>()
+                           object? x = ((ConfigApi)_configApi).Get("overlay.x", (object)50);
+                           object? y = ((ConfigApi)_configApi).Get("overlay.y", (object)50);
+                           object? size = ((ConfigApi)_configApi).Get("overlay.size", (object)200);
 
                            var options =
                                new OverlayOptions { X = Convert.ToDouble(x), Y = Convert.ToDouble(y),
                                                     Width = Convert.ToDouble(size), Height = Convert.ToDouble(size) };
 
                            _overlay = OverlayManager.Instance.CreateOverlay(_context.PluginId, options);
-                           Services.LogService.Instance.Debug(
-                               "OverlayApi",
-                               $"EnsureOverlay: CreateOverlay returned {(_overlay == null ? "null" : "new overlay")}");
 
                            // 订阅编辑模式退出事件
                            if (_overlay != null)

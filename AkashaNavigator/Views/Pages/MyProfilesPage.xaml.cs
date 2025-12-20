@@ -486,9 +486,9 @@ public partial class MyProfilesPage : UserControl
             // 获取当前 Profile 的配置目录
             var configDirectory = PluginHost.Instance.GetPluginConfigDirectory(_currentProfileId, pluginId);
 
-            // 打开插件设置窗口
+            // 打开插件设置窗口（传入 profileId）
             PluginSettingsWindow.ShowSettings(pluginId, pluginInfo.Name, pluginDirectory, configDirectory,
-                                              Window.GetWindow(this));
+                                              Window.GetWindow(this), _currentProfileId);
         }
     }
 
