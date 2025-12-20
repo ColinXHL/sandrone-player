@@ -50,6 +50,7 @@ AkashaNavigator · A floating web player built with WPF + WebView2 for Windows, 
 * Other Features
   * **History**: Automatically track browsing history
   * **Bookmarks**: Save favorite pages
+  * **Archive Management**: Tree-structured archive with folder organization, search and sorting
   * **Subtitle Support**: Parse video subtitles for plugin access
   * **Overlay System**: Plugins can create custom UI overlays
 
