@@ -200,10 +200,11 @@ public class EventApiTests : IDisposable
     }
 
     /// <summary>
-    /// 重复注册相同回调不应该增加计数
+    /// 重复注册相同回调应该增加计数（每次注册都是独立的订阅）
+    /// 这是设计行为：允许同一回调多次注册，每次返回不同的订阅 ID
     /// </summary>
     [Fact]
-    public void On_DuplicateCallback_ShouldNotIncrease()
+    public void On_DuplicateCallback_ShouldIncrease()
     {
         var eventName = "testEvent";
         Action<object> callback = (data) =>
@@ -212,7 +213,8 @@ public class EventApiTests : IDisposable
         _eventApi.On(eventName, callback);
         _eventApi.On(eventName, callback);
 
-        Assert.Equal(1, _eventApi.GetListenerCount(eventName));
+        // 每次注册都是独立的订阅，所以计数应该是 2
+        Assert.Equal(2, _eventApi.GetListenerCount(eventName));
 
         _eventApi.ClearAllListeners();
     }

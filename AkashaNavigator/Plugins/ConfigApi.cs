@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.ClearScript;
 using AkashaNavigator.Models.Plugin;
 
@@ -15,6 +16,7 @@ public class ConfigApi
 #region Fields
 
     private readonly PluginConfig _config;
+    private readonly EventManager? _eventManager;
 
 #endregion
 
@@ -24,9 +26,19 @@ public class ConfigApi
     /// 创建配置 API 实例
     /// </summary>
     /// <param name="config">插件配置</param>
-    public ConfigApi(PluginConfig config)
+    public ConfigApi(PluginConfig config) : this(config, null)
+    {
+    }
+
+    /// <summary>
+    /// 创建配置 API 实例（带事件管理器）
+    /// </summary>
+    /// <param name="config">插件配置</param>
+    /// <param name="eventManager">事件管理器（可选，用于发射配置变更事件）</param>
+    public ConfigApi(PluginConfig config, EventManager? eventManager)
     {
         _config = config ?? throw new ArgumentNullException(nameof(config));
+        _eventManager = eventManager;
     }
 
 #endregion
@@ -63,6 +75,7 @@ public class ConfigApi
     /// 设置配置值
     /// 支持点号分隔的路径，如 "overlay.x"
     /// 设置后自动保存到文件
+    /// 当值发生变化时，发射 "configChanged" 事件
     /// </summary>
     /// <param name="key">配置键（支持点号路径）</param>
     /// <param name="value">配置值</param>
@@ -72,6 +85,20 @@ public class ConfigApi
         if (string.IsNullOrWhiteSpace(key))
             return;
 
+        // 获取旧值用于事件发射
+        object? oldValue = null;
+        var hasOldValue = false;
+        try
+        {
+            oldValue = _config.GetRaw(key);
+            hasOldValue = true;
+        }
+        catch
+        {
+            // 键不存在，oldValue 保持为 null
+        }
+
+        // 设置新值
         _config.Set(key, value);
 
         // 自动保存
@@ -82,6 +109,28 @@ public class ConfigApi
         catch
         {
             // 忽略保存错误
+        }
+
+        // 发射配置变更事件（仅当值实际发生变化时）
+        if (_eventManager != null)
+        {
+            // 检查值是否真的发生了变化
+            var valueChanged = !hasOldValue || !Equals(oldValue, value);
+            if (valueChanged)
+            {
+                try
+                {
+                    var eventData = new Dictionary<string, object?> { { "key", key },
+                                                                      { "newValue", value },
+                                                                      { "oldValue", oldValue } };
+                    _eventManager.Emit(EventManager.ConfigChanged, eventData);
+                }
+                catch (Exception ex)
+                {
+                    Services.LogService.Instance.Error("ConfigApi",
+                                                       $"Failed to emit configChanged event: {ex.Message}");
+                }
+            }
         }
     }
 

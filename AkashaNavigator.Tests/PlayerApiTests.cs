@@ -270,61 +270,61 @@ public class PlayerApiTests : IDisposable
 
 #endregion
 
-#region EventApi 集成测试
+#region EventManager 集成测试
 
     /// <summary>
-    /// PlayerApi 与 EventApi 集成：设置 EventApi 不应该抛出异常
+    /// PlayerApi 与 EventManager 集成：设置 EventManager 不应该抛出异常
     /// </summary>
     [Fact]
-    public void SetEventApi_ShouldNotThrow()
+    public void SetEventManager_ShouldNotThrow()
     {
         var playerApi = new PlayerApi(_context);
-        var eventApi = new EventApi(_context);
+        var eventManager = new EventManager();
 
-        playerApi.SetEventApi(eventApi);
-        playerApi.SetEventApi(null);
+        playerApi.SetEventManager(eventManager);
+        playerApi.SetEventManager(null);
     }
 
     /// <summary>
-    /// PlayerApi 与 EventApi 集成：Play 应该触发 playStateChanged 事件
+    /// PlayerApi 与 EventManager 集成：Play 应该触发 playStateChanged 事件
     /// 注意：由于没有窗口，事件仍然会被触发（在实际实现中）
     /// </summary>
     [Fact]
-    public void Play_WithEventApi_ShouldTriggerEvent()
+    public void Play_WithEventManager_ShouldTriggerEvent()
     {
         var playerApi = new PlayerApi(_context);
-        var eventApi = new EventApi(_context);
-        playerApi.SetEventApi(eventApi);
+        var eventManager = new EventManager();
+        playerApi.SetEventManager(eventManager);
 
         var eventTriggered = false;
-        eventApi.On(EventApi.PlayStateChanged, (data) => eventTriggered = true);
+        eventManager.On(EventManager.PlayStateChanged, (Action<object>)((data) => eventTriggered = true));
 
         playerApi.Play();
 
         // 由于没有窗口，Play 方法会直接触发事件
         Assert.True(eventTriggered);
 
-        eventApi.ClearAllListeners();
+        eventManager.Clear();
     }
 
     /// <summary>
-    /// PlayerApi 与 EventApi 集成：Pause 应该触发 playStateChanged 事件
+    /// PlayerApi 与 EventManager 集成：Pause 应该触发 playStateChanged 事件
     /// </summary>
     [Fact]
-    public void Pause_WithEventApi_ShouldTriggerEvent()
+    public void Pause_WithEventManager_ShouldTriggerEvent()
     {
         var playerApi = new PlayerApi(_context);
-        var eventApi = new EventApi(_context);
-        playerApi.SetEventApi(eventApi);
+        var eventManager = new EventManager();
+        playerApi.SetEventManager(eventManager);
 
         var eventTriggered = false;
-        eventApi.On(EventApi.PlayStateChanged, (data) => eventTriggered = true);
+        eventManager.On(EventManager.PlayStateChanged, (Action<object>)((data) => eventTriggered = true));
 
         playerApi.Pause();
 
         Assert.True(eventTriggered);
 
-        eventApi.ClearAllListeners();
+        eventManager.Clear();
     }
 
 #endregion

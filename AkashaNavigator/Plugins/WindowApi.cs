@@ -16,7 +16,7 @@ public class WindowApi
 
     private readonly PluginContext _context;
     private readonly Func<PlayerWindow?> _getWindow;
-    private EventApi? _eventApi;
+    private EventManager? _eventManager;
 
 #endregion
 
@@ -48,11 +48,11 @@ public class WindowApi
 #region Internal Methods
 
     /// <summary>
-    /// 设置 EventApi 引用（用于触发事件）
+    /// 设置 EventManager 引用（用于触发事件）
     /// </summary>
-    internal void SetEventApi(EventApi? eventApi)
+    internal void SetEventManager(EventManager? eventManager)
     {
-        _eventApi = eventApi;
+        _eventManager = eventManager;
     }
 
     /// <summary>
@@ -61,8 +61,8 @@ public class WindowApi
     internal void Cleanup()
     {
         // WindowApi 没有事件监听器需要清理
-        // 清空 EventApi 引用
-        _eventApi = null;
+        // 清空 EventManager 引用
+        _eventManager = null;
 
         Services.LogService.Instance.Debug($"Plugin:{_context.PluginId}", "WindowApi: cleaned up");
     }
@@ -102,9 +102,10 @@ public class WindowApi
                                      Win32Helper.SetWindowOpacity(window, clampedOpacity);
 
                                      // 触发事件（如果透明度确实改变了）
-                                     if (Math.Abs(oldOpacity - clampedOpacity) > 0.001 && _eventApi != null)
+                                     if (Math.Abs(oldOpacity - clampedOpacity) > 0.001 && _eventManager != null)
                                      {
-                                         _eventApi.Emit(EventApi.OpacityChanged, new { opacity = clampedOpacity });
+                                         _eventManager.Emit(EventManager.OpacityChanged,
+                                                            new { opacity = clampedOpacity });
                                      }
                                  });
     }
@@ -167,7 +168,8 @@ public class WindowApi
                                          window.ToggleClickThrough();
 
                                          // 触发事件
-                                         _eventApi?.Emit(EventApi.ClickThroughChanged, new { enabled = enabled });
+                                         _eventManager?.Emit(EventManager.ClickThroughChanged,
+                                                             new { enabled = enabled });
                                      }
                                  });
     }

@@ -84,6 +84,24 @@ public class StorageApiTests : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// 检查键名是否包含路径遍历模式
+    /// </summary>
+    private static bool ContainsPathTraversal(string key)
+    {
+        if (key.Contains("../") || key.Contains("..\\"))
+            return true;
+        if (key.StartsWith("..") || key.EndsWith(".."))
+            return true;
+        if (key == "..")
+            return true;
+        if (key.StartsWith("/") || key.StartsWith("\\"))
+            return true;
+        if (key.Length >= 2 && char.IsLetter(key[0]) && key[1] == ':')
+            return true;
+        return false;
+    }
+
 #endregion
 
 #region Property 6 : 存储 Round - Trip
@@ -370,6 +388,103 @@ public class StorageApiTests : IDisposable
         _storageApi.Save(key, "test");
 
         var result = _storageApi.Exists(key);
+
+        // 清理
+        _storageApi.Delete(key);
+
+        Assert.True(result);
+    }
+
+#endregion
+
+#region Path Traversal Validation Tests(Property 11)
+
+    /// <summary>
+    /// **Feature: plugin-api-redesign, Property 11: Storage Key Validation**
+    /// 包含路径遍历模式的键名应该被拒绝
+    /// **Validates: Requirements 8.4**
+    /// </summary>
+    [Theory]
+    [InlineData("../secret")]
+    [InlineData("..\\secret")]
+    [InlineData("foo/../bar")]
+    [InlineData("foo\\..\\bar")]
+    [InlineData("..")]
+    [InlineData("test..")]
+    [InlineData("..test")]
+    [InlineData("/etc/passwd")]
+    [InlineData("\\windows\\system32")]
+    [InlineData("C:secret")]
+    [InlineData("D:data")]
+    public void Save_PathTraversalKey_ReturnsFalse(string key)
+    {
+        var result = _storageApi.Save(key, "malicious data");
+        Assert.False(result);
+    }
+
+    /// <summary>
+    /// **Feature: plugin-api-redesign, Property 11: Storage Key Validation**
+    /// 包含路径遍历模式的键名在 Load 时应该返回 null
+    /// **Validates: Requirements 8.4**
+    /// </summary>
+    [Theory]
+    [InlineData("../secret")]
+    [InlineData("..\\secret")]
+    [InlineData("..")]
+    [InlineData("/etc/passwd")]
+    [InlineData("C:secret")]
+    public void Load_PathTraversalKey_ReturnsNull(string key)
+    {
+        var result = _storageApi.Load(key);
+        Assert.Null(result);
+    }
+
+    /// <summary>
+    /// **Feature: plugin-api-redesign, Property 11: Storage Key Validation**
+    /// 包含路径遍历模式的键名在 Exists 时应该返回 false
+    /// **Validates: Requirements 8.4**
+    /// </summary>
+    [Theory]
+    [InlineData("../secret")]
+    [InlineData("..\\secret")]
+    [InlineData("..")]
+    [InlineData("/etc/passwd")]
+    [InlineData("C:secret")]
+    public void Exists_PathTraversalKey_ReturnsFalse(string key)
+    {
+        var result = _storageApi.Exists(key);
+        Assert.False(result);
+    }
+
+    /// <summary>
+    /// **Feature: plugin-api-redesign, Property 11: Storage Key Validation**
+    /// 包含路径遍历模式的键名在 Delete 时应该返回 false
+    /// **Validates: Requirements 8.4**
+    /// </summary>
+    [Theory]
+    [InlineData("../secret")]
+    [InlineData("..\\secret")]
+    [InlineData("..")]
+    [InlineData("/etc/passwd")]
+    [InlineData("C:secret")]
+    public void Delete_PathTraversalKey_ReturnsFalse(string key)
+    {
+        var result = _storageApi.Delete(key);
+        Assert.False(result);
+    }
+
+    /// <summary>
+    /// 有效的键名应该被接受（不包含路径遍历模式）
+    /// </summary>
+    [Theory]
+    [InlineData("valid_key")]
+    [InlineData("my-data")]
+    [InlineData("settings123")]
+    [InlineData("user_preferences")]
+    [InlineData("cache-v1")]
+    public void Save_ValidKey_ReturnsTrue(string key)
+    {
+        var result = _storageApi.Save(key, "test data");
 
         // 清理
         _storageApi.Delete(key);

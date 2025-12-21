@@ -222,6 +222,24 @@ public class HttpApiTests : IDisposable
         Assert.NotEmpty(error);
     }
 
+    /// <summary>
+    /// **Feature: plugin-api-redesign, Task 11.2: 一致的响应结构**
+    /// 错误响应的 headers 应该是空字典而不是 null
+    /// **Validates: Requirements 9.2, 9.3**
+    /// </summary>
+    [Fact]
+    public void ErrorResponse_HeadersShouldBeEmptyDictionary()
+    {
+        var result = _httpApi.Get("");
+
+        var type = result.GetType();
+        var headers = type.GetProperty("headers")!.GetValue(result);
+
+        Assert.NotNull(headers);
+        Assert.IsType<Dictionary<string, string>>(headers);
+        Assert.Empty((Dictionary<string, string>)headers);
+    }
+
 #endregion
 
 #region 选项解析测试

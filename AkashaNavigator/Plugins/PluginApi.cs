@@ -19,6 +19,7 @@ public class PluginApi
     private readonly PluginManifest _manifest;
     private readonly PluginConfig _config;
     private readonly HashSet<string> _permissions;
+    private readonly EventManager _eventManager;
 
     // 用于延迟设置的窗口引用
     private static Func<PlayerWindow?>? _globalWindowGetter;
@@ -152,9 +153,12 @@ public class PluginApi
             "PluginApi",
             $"HasPermission('overlay') = {HasPermission(PluginPermissions.Overlay)}, HasPermission('audio') = {HasPermission(PluginPermissions.Audio)}");
 
+        // 创建共享的事件管理器
+        _eventManager = new EventManager();
+
         // 初始化无需权限的 API
         Core = new CoreApi(context);
-        Config = new ConfigApi(config);
+        Config = new ConfigApi(config, _eventManager);
         Profile = profileInfo ?? throw new ArgumentNullException(nameof(profileInfo));
 
         // 初始化现有需要权限的 API
@@ -168,9 +172,12 @@ public class PluginApi
         _httpApi = new HttpApi(context);
         _eventApi = new EventApi(context);
 
-        // 将 EventApi 引用传递给需要触发事件的 API
-        _windowApi.SetEventApi(_eventApi);
-        _playerApi.SetEventApi(_eventApi);
+        // 将 EventManager 引用传递给所有需要触发事件的 API
+        // 这确保所有 API 使用同一个 EventManager 实例，实现统一的事件系统
+        _windowApi.SetEventManager(_eventManager);
+        _playerApi.SetEventManager(_eventManager);
+        _eventApi.SetEventManager(_eventManager);
+        _subtitleApi.SetEventManager(_eventManager);
 
         Services.LogService.Instance.Debug(
             "PluginApi", $"_overlayApi is null = {_overlayApi == null}, Overlay property is null = {Overlay == null}");
@@ -241,6 +248,10 @@ public class PluginApi
     /// 清理所有 API 资源（插件卸载时调用）
     /// 此方法是幂等的，可以安全地多次调用
     /// 只清理已初始化的 API（即不为 null 的 API）
+    ///
+    /// 清理顺序：
+    /// 1. 先清理各个子 API（它们可能在清理过程中触发事件）
+    /// 2. 最后清理共享的 EventManager（移除所有事件监听器）
     /// </summary>
     public void Cleanup()
     {
@@ -269,6 +280,11 @@ public class PluginApi
             TryCleanupApi("HttpApi", () => _httpApi.Cleanup());
         if (_eventApi != null)
             TryCleanupApi("EventApi", () => _eventApi.Cleanup());
+
+        // 最后清理共享的事件管理器
+        // 这必须在所有子 API 清理之后执行，因为子 API 的清理过程可能会触发事件
+        // 清理 EventManager 会移除所有事件监听器，确保不会有悬挂的回调
+        TryCleanupApi("EventManager", () => _eventManager.Clear());
 
         _isCleanedUp = true;
         Services.LogService.Instance.Debug("PluginApi", $"Plugin {_context.PluginId} cleanup completed");

@@ -119,25 +119,25 @@ public class WindowApiTests : IDisposable
 
     /// <summary>
     /// **Feature: plugin-api-enhancement, Property 10: 事件触发一致性**
-    /// 验证 WindowApi 与 EventApi 的集成：当设置 EventApi 后，状态变化应触发事件。
-    /// 由于没有实际窗口，这里测试 EventApi 的设置和基本集成。
+    /// 验证 WindowApi 与 EventManager 的集成：当设置 EventManager 后，状态变化应触发事件。
+    /// 由于没有实际窗口，这里测试 EventManager 的设置和基本集成。
     /// **Validates: Requirements 6.4, 6.5**
     /// </summary>
     [Fact]
-    public void WindowApi_SetEventApi_ShouldIntegrate()
+    public void WindowApi_SetEventManager_ShouldIntegrate()
     {
         var windowApi = new WindowApi(_context);
-        var eventApi = new EventApi(_context);
+        var eventManager = new EventManager();
 
-        // 设置 EventApi
-        windowApi.SetEventApi(eventApi);
+        // 设置 EventManager
+        windowApi.SetEventManager(eventManager);
 
         // 注册事件监听器
         var opacityChangedCount = 0;
         var clickThroughChangedCount = 0;
 
-        eventApi.On(EventApi.OpacityChanged, (data) => opacityChangedCount++);
-        eventApi.On(EventApi.ClickThroughChanged, (data) => clickThroughChangedCount++);
+        eventManager.On(EventManager.OpacityChanged, (Action<object>)((data) => opacityChangedCount++));
+        eventManager.On(EventManager.ClickThroughChanged, (Action<object>)((data) => clickThroughChangedCount++));
 
         // 由于没有窗口，SetOpacity 和 SetClickThrough 不会触发事件
         // 但这验证了集成不会抛出异常
@@ -148,19 +148,19 @@ public class WindowApiTests : IDisposable
         Assert.Equal(0, opacityChangedCount);
         Assert.Equal(0, clickThroughChangedCount);
 
-        eventApi.ClearAllListeners();
+        eventManager.Clear();
     }
 
     /// <summary>
-    /// **Feature: plugin-api-enhancement, Property 10: 事件触发一致性（EventApi 为 null）**
+    /// **Feature: plugin-api-enhancement, Property 10: 事件触发一致性（EventManager 为 null）**
     /// **Validates: Requirements 6.4, 6.5**
     /// </summary>
     [Fact]
-    public void WindowApi_NullEventApi_ShouldNotThrow()
+    public void WindowApi_NullEventManager_ShouldNotThrow()
     {
         var windowApi = new WindowApi(_context);
 
-        // 不设置 EventApi，调用方法不应该抛出异常
+        // 不设置 EventManager，调用方法不应该抛出异常
         windowApi.SetOpacity(0.5);
         windowApi.SetClickThrough(true);
 

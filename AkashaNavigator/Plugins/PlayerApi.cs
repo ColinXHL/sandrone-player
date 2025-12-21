@@ -17,7 +17,7 @@ public class PlayerApi
 
     private readonly PluginContext _context;
     private readonly Func<PlayerWindow?> _getWindow;
-    private EventApi? _eventApi;
+    private EventManager? _eventManager;
 
 #endregion
 
@@ -49,11 +49,11 @@ public class PlayerApi
 #region Internal Methods
 
     /// <summary>
-    /// 设置 EventApi 引用（用于触发事件）
+    /// 设置 EventManager 引用（用于触发事件）
     /// </summary>
-    internal void SetEventApi(EventApi? eventApi)
+    internal void SetEventManager(EventManager? eventManager)
     {
-        _eventApi = eventApi;
+        _eventManager = eventManager;
     }
 
     /// <summary>
@@ -221,8 +221,8 @@ public class PlayerApi
     internal void Cleanup()
     {
         // PlayerApi 没有事件监听器需要清理
-        // 清空 EventApi 引用
-        _eventApi = null;
+        // 清空 EventManager 引用
+        _eventManager = null;
 
         Services.LogService.Instance.Debug($"Plugin:{_context.PluginId}", "PlayerApi: cleaned up");
     }
@@ -253,7 +253,7 @@ public class PlayerApi
         ExecuteScript(script);
 
         // 触发播放状态变化事件
-        _eventApi?.Emit(EventApi.PlayStateChanged, new { playing = true });
+        _eventManager?.Emit(EventManager.PlayStateChanged, new { playing = true });
     }
 
     /// <summary>
@@ -278,7 +278,7 @@ public class PlayerApi
         ExecuteScript(script);
 
         // 触发播放状态变化事件
-        _eventApi?.Emit(EventApi.PlayStateChanged, new { playing = false });
+        _eventManager?.Emit(EventManager.PlayStateChanged, new { playing = false });
     }
 
     /// <summary>
@@ -311,7 +311,7 @@ public class PlayerApi
         if (result != null)
         {
             var isPlaying = result.Contains("playing");
-            _eventApi?.Emit(EventApi.PlayStateChanged, new { playing = isPlaying });
+            _eventManager?.Emit(EventManager.PlayStateChanged, new { playing = isPlaying });
         }
     }
 

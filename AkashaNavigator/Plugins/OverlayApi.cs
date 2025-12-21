@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using AkashaNavigator.Services;
 using AkashaNavigator.Views.Windows;
+using Microsoft.ClearScript;
 
 namespace AkashaNavigator.Plugins
 {
@@ -45,7 +45,8 @@ public class OverlayApi
     /// </summary>
     /// <param name="x">X 坐标</param>
     /// <param name="y">Y 坐标</param>
-    public void setPosition(double x, double y)
+    [ScriptMember("setPosition")]
+    public void SetPosition(double x, double y)
     {
         EnsureOverlay();
         InvokeOnUI(() => _overlay?.SetPosition((int)x, (int)y));
@@ -56,7 +57,8 @@ public class OverlayApi
     /// </summary>
     /// <param name="width">宽度</param>
     /// <param name="height">高度</param>
-    public void setSize(double width, double height)
+    [ScriptMember("setSize")]
+    public void SetSize(double width, double height)
     {
         if (width <= 0 || height <= 0)
             return;
@@ -69,7 +71,8 @@ public class OverlayApi
     /// 获取覆盖层窗口的位置和大小（逻辑像素）
     /// </summary>
     /// <returns>包含 x, y, width, height 的对象</returns>
-    public object getRect()
+    [ScriptMember("getRect")]
+    public object GetRect()
     {
         EnsureOverlay();
 
@@ -97,7 +100,8 @@ public class OverlayApi
     /// <summary>
     /// 显示覆盖层窗口
     /// </summary>
-    public void show()
+    [ScriptMember("show")]
+    public void Show()
     {
         EnsureOverlay();
         InvokeOnUI(() => _overlay?.Show());
@@ -106,7 +110,8 @@ public class OverlayApi
     /// <summary>
     /// 隐藏覆盖层窗口
     /// </summary>
-    public void hide()
+    [ScriptMember("hide")]
+    public void Hide()
     {
         InvokeOnUI(() => _overlay?.Hide());
     }
@@ -120,7 +125,8 @@ public class OverlayApi
     /// </summary>
     /// <param name="direction">方向：north/northeast/east/southeast/south/southwest/west/northwest</param>
     /// <param name="duration">显示时长（毫秒），0 表示常驻</param>
-    public void showMarker(string direction, object? durationObj = null)
+    [ScriptMember("showMarker")]
+    public void ShowMarker(string direction, object? durationObj = null)
     {
         // 将 duration 转换为 int，支持从 JavaScript 传入的各种数字类型
         int duration = 0;
@@ -171,41 +177,32 @@ public class OverlayApi
     /// <summary>
     /// 清除所有方向标记
     /// </summary>
-    public void clearMarkers()
+    [ScriptMember("clearMarkers")]
+    public void ClearMarkers()
     {
         InvokeOnUI(() => _overlay?.ClearMarkers());
     }
 
     /// <summary>
-    /// 设置标记样式
+    /// 设置标记样式（接受选项对象）
+    /// 支持 JavaScript 调用：api.overlay.setMarkerStyle({ size: 32, color: "#FF0000" })
     /// </summary>
-    /// <param name="size">标记大小（像素），范围 16-64</param>
-    /// <param name="color">标记颜色（十六进制，如 #FFFF6B6B）</param>
-    public void setMarkerStyle(double size, string color)
+    /// <param name="options">样式选项对象，包含 size 和/或 color 属性</param>
+    [ScriptMember("setMarkerStyle")]
+    public void SetMarkerStyle(object? options)
     {
-        EnsureOverlay();
-        InvokeOnUI(() => _overlay?.SetMarkerStyle(size, color));
-    }
-
-    /// <summary>
-    /// 设置标记样式（从选项对象）
-    /// </summary>
-    /// <param name="options">样式选项对象，包含 size 和 color 属性</param>
-    public void setMarkerStyle(object? options)
-    {
-        Services.LogService.Instance.Debug("OverlayApi",
-                                           $"setMarkerStyle(object) called, options is null = {options == null}");
+        Services.LogService.Instance.Debug("OverlayApi", $"SetMarkerStyle called, options is null = {options == null}");
 
         if (options == null)
             return;
 
         Services.LogService.Instance.Debug("OverlayApi",
-                                           $"setMarkerStyle: options type = {options.GetType().FullName}");
+                                           $"SetMarkerStyle: options type = {options.GetType().FullName}");
 
-        var dict = ConvertToDictionary(options);
-        Services.LogService.Instance.Debug("OverlayApi", $"setMarkerStyle: dict is null = {dict == null}");
+        var dict = JsTypeConverter.ToDictionary(options);
+        Services.LogService.Instance.Debug("OverlayApi", $"SetMarkerStyle: dict is null = {dict == null}");
 
-        if (dict == null)
+        if (dict == null || dict.Count == 0)
             return;
 
         double size = 24;
@@ -214,15 +211,27 @@ public class OverlayApi
         if (dict.TryGetValue("size", out var sizeValue) && sizeValue != null)
         {
             Services.LogService.Instance.Debug(
-                "OverlayApi", $"setMarkerStyle: sizeValue = {sizeValue}, type = {sizeValue.GetType().Name}");
+                "OverlayApi", $"SetMarkerStyle: sizeValue = {sizeValue}, type = {sizeValue.GetType().Name}");
             size = Convert.ToDouble(sizeValue);
         }
         if (dict.TryGetValue("color", out var colorValue) && colorValue != null)
             color = colorValue.ToString() ?? "#FFFF6B6B";
 
-        Services.LogService.Instance.Debug("OverlayApi", $"setMarkerStyle: calling setMarkerStyle({size}, {color})");
-        setMarkerStyle(size, color);
-        Services.LogService.Instance.Debug("OverlayApi", "setMarkerStyle: completed");
+        Services.LogService.Instance.Debug("OverlayApi",
+                                           $"SetMarkerStyle: calling internal SetMarkerStyleInternal({size}, {color})");
+        SetMarkerStyleInternal(size, color);
+        Services.LogService.Instance.Debug("OverlayApi", "SetMarkerStyle: completed");
+    }
+
+    /// <summary>
+    /// 设置标记样式（内部方法）
+    /// </summary>
+    /// <param name="size">标记大小（像素），范围 16-64</param>
+    /// <param name="color">标记颜色（十六进制，如 #FFFF6B6B）</param>
+    private void SetMarkerStyleInternal(double size, string color)
+    {
+        EnsureOverlay();
+        InvokeOnUI(() => _overlay?.SetMarkerStyle(size, color));
     }
 
     /// <summary>
@@ -230,7 +239,8 @@ public class OverlayApi
     /// </summary>
     /// <param name="path">图片路径（相对于插件目录或绝对路径），图片应指向右/东方向</param>
     /// <returns>是否设置成功</returns>
-    public bool setMarkerImage(string path)
+    [ScriptMember("setMarkerImage")]
+    public bool SetMarkerImage(string path)
     {
         Services.LogService.Instance.Debug("OverlayApi", $"SetMarkerImage called with path: {path}");
         Services.LogService.Instance.Debug("OverlayApi", $"Plugin directory: {_context.PluginDirectory}");
@@ -288,7 +298,8 @@ public class OverlayApi
     /// <param name="y">Y 坐标</param>
     /// <param name="options">样式选项（可选）</param>
     /// <returns>元素 ID</returns>
-    public string drawText(string text, double x, double y, object? options = null)
+    [ScriptMember("drawText")]
+    public string DrawText(string text, double x, double y, object? options = null)
     {
         if (string.IsNullOrEmpty(text))
             return string.Empty;
@@ -317,7 +328,8 @@ public class OverlayApi
     /// <param name="height">高度</param>
     /// <param name="options">样式选项（可选）</param>
     /// <returns>元素 ID</returns>
-    public string drawRect(double x, double y, double width, double height, object? options = null)
+    [ScriptMember("drawRect")]
+    public string DrawRect(double x, double y, double width, double height, object? options = null)
     {
         if (width <= 0 || height <= 0)
             return string.Empty;
@@ -345,7 +357,8 @@ public class OverlayApi
     /// <param name="y">Y 坐标</param>
     /// <param name="options">样式选项（可选）</param>
     /// <returns>元素 ID，失败返回空字符串</returns>
-    public string drawImage(string path, double x, double y, object? options = null)
+    [ScriptMember("drawImage")]
+    public string DrawImage(string path, double x, double y, object? options = null)
     {
         if (string.IsNullOrEmpty(path))
             return string.Empty;
@@ -382,7 +395,8 @@ public class OverlayApi
     /// 移除指定绘图元素
     /// </summary>
     /// <param name="elementId">元素 ID</param>
-    public void removeElement(string elementId)
+    [ScriptMember("removeElement")]
+    public void RemoveElement(string elementId)
     {
         if (string.IsNullOrEmpty(elementId))
             return;
@@ -394,7 +408,8 @@ public class OverlayApi
     /// <summary>
     /// 清除该插件的所有绘图元素
     /// </summary>
-    public void clear()
+    [ScriptMember("clear")]
+    public void Clear()
     {
         InvokeOnUI(() =>
                    { _overlay?.ClearDrawingElements(); });
@@ -408,7 +423,8 @@ public class OverlayApi
     /// 进入编辑模式
     /// 编辑模式下可拖拽移动和缩放覆盖层
     /// </summary>
-    public void enterEditMode()
+    [ScriptMember("enterEditMode")]
+    public void EnterEditMode()
     {
         EnsureOverlay();
         InvokeOnUI(() =>
@@ -425,7 +441,8 @@ public class OverlayApi
     /// 退出编辑模式
     /// 退出时自动保存位置和大小到配置
     /// </summary>
-    public void exitEditMode()
+    [ScriptMember("exitEditMode")]
+    public void ExitEditMode()
     {
         InvokeOnUI(() =>
                    {
@@ -556,11 +573,11 @@ public class OverlayApi
         if (options == null)
             return result;
 
-        var dict = ConvertToDictionary(options);
-        if (dict == null)
+        var dict = JsTypeConverter.ToDictionary(options);
+        if (dict.Count == 0)
             return result;
 
-        if (dict.TryGetValue("fontSize", out var fontSize))
+        if (dict.TryGetValue("fontSize", out var fontSize) && fontSize != null)
             result.FontSize = Convert.ToDouble(fontSize);
         if (dict.TryGetValue("fontFamily", out var fontFamily))
             result.FontFamily = fontFamily?.ToString();
@@ -568,9 +585,9 @@ public class OverlayApi
             result.Color = color?.ToString();
         if (dict.TryGetValue("backgroundColor", out var bgColor))
             result.BackgroundColor = bgColor?.ToString();
-        if (dict.TryGetValue("opacity", out var opacity))
+        if (dict.TryGetValue("opacity", out var opacity) && opacity != null)
             result.Opacity = Convert.ToDouble(opacity);
-        if (dict.TryGetValue("duration", out var duration))
+        if (dict.TryGetValue("duration", out var duration) && duration != null)
             result.Duration = Convert.ToInt32(duration);
 
         return result;
@@ -585,21 +602,21 @@ public class OverlayApi
         if (options == null)
             return result;
 
-        var dict = ConvertToDictionary(options);
-        if (dict == null)
+        var dict = JsTypeConverter.ToDictionary(options);
+        if (dict.Count == 0)
             return result;
 
         if (dict.TryGetValue("fill", out var fill))
             result.Fill = fill?.ToString();
         if (dict.TryGetValue("stroke", out var stroke))
             result.Stroke = stroke?.ToString();
-        if (dict.TryGetValue("strokeWidth", out var strokeWidth))
+        if (dict.TryGetValue("strokeWidth", out var strokeWidth) && strokeWidth != null)
             result.StrokeWidth = Convert.ToDouble(strokeWidth);
-        if (dict.TryGetValue("opacity", out var opacity))
+        if (dict.TryGetValue("opacity", out var opacity) && opacity != null)
             result.Opacity = Convert.ToDouble(opacity);
-        if (dict.TryGetValue("cornerRadius", out var cornerRadius))
+        if (dict.TryGetValue("cornerRadius", out var cornerRadius) && cornerRadius != null)
             result.CornerRadius = Convert.ToDouble(cornerRadius);
-        if (dict.TryGetValue("duration", out var duration))
+        if (dict.TryGetValue("duration", out var duration) && duration != null)
             result.Duration = Convert.ToInt32(duration);
 
         return result;
@@ -614,116 +631,20 @@ public class OverlayApi
         if (options == null)
             return result;
 
-        var dict = ConvertToDictionary(options);
-        if (dict == null)
+        var dict = JsTypeConverter.ToDictionary(options);
+        if (dict.Count == 0)
             return result;
 
-        if (dict.TryGetValue("width", out var width))
+        if (dict.TryGetValue("width", out var width) && width != null)
             result.Width = Convert.ToDouble(width);
-        if (dict.TryGetValue("height", out var height))
+        if (dict.TryGetValue("height", out var height) && height != null)
             result.Height = Convert.ToDouble(height);
-        if (dict.TryGetValue("opacity", out var opacity))
+        if (dict.TryGetValue("opacity", out var opacity) && opacity != null)
             result.Opacity = Convert.ToDouble(opacity);
-        if (dict.TryGetValue("duration", out var duration))
+        if (dict.TryGetValue("duration", out var duration) && duration != null)
             result.Duration = Convert.ToInt32(duration);
 
         return result;
-    }
-
-    /// <summary>
-    /// 将对象转换为字典（支持 Jint 对象和匿名对象）
-    /// </summary>
-    private static Dictionary<string, object?>? ConvertToDictionary(object? obj)
-    {
-        if (obj == null)
-            return null;
-
-        // 如果已经是字典
-        if (obj is Dictionary<string, object?> dict)
-            return dict;
-
-        if (obj is IDictionary<string, object> idict)
-            return idict.ToDictionary(kv => kv.Key, kv => (object?)kv.Value);
-
-        // 尝试从 Jint ObjectInstance 获取属性
-        var type = obj.GetType();
-        if (type.FullName?.Contains("Jint") == true)
-        {
-            try
-            {
-                var result = new Dictionary<string, object?>();
-
-                // 使用反射获取 Jint 对象的属性
-                var getOwnPropertyKeysMethod = type.GetMethod("GetOwnPropertyKeys");
-                if (getOwnPropertyKeysMethod != null)
-                {
-                    var keys = getOwnPropertyKeysMethod.Invoke(obj, new object[] { 0 }) as IEnumerable<object>;
-                    if (keys != null)
-                    {
-                        var getMethod = type.GetMethod("Get", new[] { typeof(string) });
-                        foreach (var key in keys)
-                        {
-                            var keyStr = key.ToString();
-                            if (keyStr != null && getMethod != null)
-                            {
-                                var value = getMethod.Invoke(obj, new object[] { keyStr });
-                                result[keyStr] = ConvertJintValue(value);
-                            }
-                        }
-                    }
-                }
-
-                return result.Count > 0 ? result : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        // 尝试从匿名对象获取属性
-        try
-        {
-            var result = new Dictionary<string, object?>();
-            foreach (var prop in type.GetProperties())
-            {
-                result[prop.Name] = prop.GetValue(obj);
-            }
-            return result.Count > 0 ? result : null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// 转换 Jint 值为 .NET 值
-    /// </summary>
-    private static object? ConvertJintValue(object? value)
-    {
-        if (value == null)
-            return null;
-
-        var type = value.GetType();
-
-        // Jint JsNumber
-        if (type.Name == "JsNumber" || type.Name == "JsValue")
-        {
-            var toObjectMethod = type.GetMethod("ToObject");
-            if (toObjectMethod != null)
-            {
-                return toObjectMethod.Invoke(value, null);
-            }
-        }
-
-        // Jint JsString
-        if (type.Name == "JsString")
-        {
-            return value.ToString();
-        }
-
-        return value;
     }
 
 #endregion
