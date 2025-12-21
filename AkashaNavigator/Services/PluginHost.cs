@@ -157,49 +157,6 @@ public class PluginHost : IDisposable
     }
 
     /// <summary>
-    /// 加载指定 Profile 的所有插件（旧方法，保留向后兼容）
-    /// 使用 SubscriptionManager 获取订阅的插件列表
-    /// </summary>
-    /// <param name="profileId">Profile ID</param>
-    [Obsolete("使用 LoadPluginsForProfile(profileId) 代替，新方法使用 PluginAssociationManager")]
-    public void LoadPluginsForProfileLegacy(string profileId)
-    {
-        if (string.IsNullOrWhiteSpace(profileId))
-            return;
-
-        // 如果已有插件加载，先卸载
-        if (_loadedPlugins.Count > 0)
-        {
-            UnloadAllPlugins();
-        }
-
-        _currentProfileId = profileId;
-
-        // 从 SubscriptionManager 获取订阅的插件列表
-        var subscribedPlugins = SubscriptionManager.Instance.GetSubscribedPlugins(profileId);
-        if (subscribedPlugins.Count == 0)
-        {
-            Log($"Profile '{profileId}' 没有订阅任何插件");
-            return;
-        }
-
-        // 遍历订阅的插件
-        foreach (var pluginId in subscribedPlugins)
-        {
-            // 从 PluginRegistry 获取插件源码目录
-            var sourceDir = PluginRegistry.Instance.GetPluginSourceDirectory(pluginId);
-
-            // 获取用户配置目录
-            var configDir = GetPluginConfigDirectory(profileId, pluginId);
-
-            // 加载插件
-            LoadPlugin(sourceDir, configDir, pluginId);
-        }
-
-        Log($"已加载 {_loadedPlugins.Count} 个插件 (Profile: {profileId})");
-    }
-
-    /// <summary>
     /// 卸载所有插件
     /// </summary>
     public void UnloadAllPlugins()
@@ -604,8 +561,8 @@ public class PluginHost : IDisposable
             ProfileDirectory = GetPluginConfigDirectory(_currentProfileId ?? string.Empty, pluginId)
         };
 
-        // 创建插件上下文（使用新引擎 v2 API）
-        var context = PluginContext.CreateWithNewEngine(manifest, sourceDir, configDir, config, engineOptions);
+        // 创建插件上下文
+        var context = PluginContext.Create(manifest, sourceDir, configDir, config, engineOptions);
         context.IsEnabled = config.Enabled;
 
         // 加载脚本
@@ -619,79 +576,8 @@ public class PluginHost : IDisposable
         // 创建 PluginApi（用于事件广播等）
         var pluginApi = new PluginApi(context, config, profileInfo);
 
-        // 调用 onLoad（新引擎模式不需要传递 api 参数，API 已作为全局对象暴露）
-        if (!context.CallOnLoad())
-        {
-            Log($"插件 {manifest.Id} onLoad 调用失败: {context.LastError}");
-            // 即使 onLoad 失败，也保留插件（异常隔离）
-        }
-
-        _loadedPlugins.Add(context);
-        _pluginApis[manifest.Id!] = pluginApi;
-        PluginLoaded?.Invoke(this, context);
-
-        Log($"插件 {manifest.Name} (v{manifest.Version}) 加载成功");
-    }
-
-    /// <summary>
-    /// 加载单个插件（旧方法，保留向后兼容）
-    /// </summary>
-    /// <param name="pluginDir">插件目录（源码和配置在同一目录）</param>
-    [Obsolete("使用 LoadPlugin(sourceDir, configDir, pluginId) 代替")]
-    private void LoadPluginLegacy(string pluginDir)
-    {
-        var manifestPath = Path.Combine(pluginDir, AppConstants.PluginManifestFileName);
-
-        // 加载清单
-        var loadResult = PluginManifest.LoadFromFile(manifestPath);
-        if (!loadResult.IsSuccess)
-        {
-            Log($"加载插件清单失败 ({pluginDir}): {loadResult.ErrorMessage}");
-            return;
-        }
-
-        var manifest = loadResult.Manifest!;
-
-        // 检查是否已加载同 ID 插件
-        if (_loadedPlugins.Any(p => p.PluginId == manifest.Id))
-        {
-            Log($"插件 {manifest.Id} 已加载，跳过");
-            return;
-        }
-
-        // 加载配置
-        var configPath = Path.Combine(pluginDir, AppConstants.PluginConfigFileName);
-        var config = PluginConfig.LoadFromFile(configPath, manifest.Id!);
-
-        // 应用默认配置
-        config.ApplyDefaults(manifest.DefaultConfig);
-        _pluginConfigs[manifest.Id!] = config;
-
-        // 如果插件被禁用，跳过加载
-        if (!config.Enabled)
-        {
-            Log($"插件 {manifest.Id} 已禁用，跳过加载");
-            return;
-        }
-
-        // 创建插件上下文
-        var context = new PluginContext(manifest, pluginDir) { IsEnabled = config.Enabled };
-
-        // 加载脚本
-        if (!context.LoadScript())
-        {
-            Log($"加载插件脚本失败 ({manifest.Id}): {context.LastError}");
-            context.Dispose();
-            return;
-        }
-
-        // 创建 PluginApi 并传入 onLoad
-        var profileInfo = new ProfileInfo(_currentProfileId ?? string.Empty, _currentProfileId ?? string.Empty,
-                                          GetPluginsDirectory(_currentProfileId ?? string.Empty));
-        var pluginApi = new PluginApi(context, config, profileInfo);
-
         // 调用 onLoad
-        if (!context.CallOnLoad(pluginApi))
+        if (!context.CallOnLoad())
         {
             Log($"插件 {manifest.Id} onLoad 调用失败: {context.LastError}");
             // 即使 onLoad 失败，也保留插件（异常隔离）
@@ -711,22 +597,17 @@ public class PluginHost : IDisposable
     {
         var pluginId = plugin.PluginId;
 
-        // 获取 PluginApi（在调用 onUnload 之前，因为 onUnload 需要 api 参数）
-        _pluginApis.TryGetValue(pluginId, out var pluginApi);
-
         try
         {
-            // 调用 onUnload，传递 api 参数
-            plugin.CallOnUnload(pluginApi);
+            plugin.CallOnUnload();
         }
         catch (Exception ex)
         {
             Log($"插件 {pluginId} onUnload 调用失败: {ex.Message}");
-            // 继续执行清理流程
         }
 
         // 清理 PluginApi
-        if (pluginApi != null)
+        if (_pluginApis.TryGetValue(pluginId, out var pluginApi))
         {
             try
             {
@@ -735,34 +616,21 @@ public class PluginHost : IDisposable
             catch (Exception ex)
             {
                 Log($"清理插件 API 失败 ({pluginId}): {ex.Message}");
-                // 继续执行清理流程
             }
         }
 
         try
         {
-            // 释放资源
             plugin.Dispose();
         }
         catch (Exception ex)
         {
             Log($"释放插件资源失败 ({pluginId}): {ex.Message}");
-            // 继续执行清理流程
         }
 
-        // 从 API 字典移除
         _pluginApis.Remove(pluginId);
-
         PluginUnloaded?.Invoke(this, pluginId);
         Log($"插件 {pluginId} 已卸载");
-    }
-
-    /// <summary>
-    /// 获取 Profile 的插件目录（旧方法，保留向后兼容）
-    /// </summary>
-    private string GetPluginsDirectory(string profileId)
-    {
-        return Path.Combine(AppPaths.ProfilesDirectory, profileId, AppConstants.PluginsDirectoryName);
     }
 
     /// <summary>

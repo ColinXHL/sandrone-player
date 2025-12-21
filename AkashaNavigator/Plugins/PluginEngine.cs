@@ -236,7 +236,7 @@ public static class PluginEngine
         // subtitle API
         if (permissions.Contains(PluginPermissionsV2.Subtitle, StringComparer.OrdinalIgnoreCase))
         {
-            var subtitleApi = new SubtitleApiLite(context);
+            var subtitleApi = new SubtitleApiLite(context, engine);
             subtitleApi.SetEventManager(eventManager);
             engine.AddHostObject("subtitle", subtitleApi);
             LogService.Instance.Debug($"PluginEngine:{pluginId}", "Exposed: subtitle");
@@ -305,9 +305,9 @@ public static class PluginEngine
 
         // Task 类型
         engine.AddHostType("Task", typeof(Task));
-        0
-            // 计时器类型
-            engine.AddHostType("Timer", typeof(System.Timers.Timer));
+
+        // 计时器类型
+        engine.AddHostType("Timer", typeof(System.Timers.Timer));
         engine.AddHostType("Stopwatch", typeof(Stopwatch));
 
         LogService.Instance.Debug(
@@ -1038,12 +1038,14 @@ public class StorageApiLite
 public class SubtitleApiLite
 {
     private readonly PluginContextLite _context;
+    private readonly V8ScriptEngine _engine;
     private EventManager? _eventManager;
     private bool _isSubscribed;
 
-    public SubtitleApiLite(PluginContextLite context)
+    public SubtitleApiLite(PluginContextLite context, V8ScriptEngine engine)
     {
         _context = context;
+        _engine = engine;
     }
 
     public void SetEventManager(EventManager eventManager)
@@ -1090,12 +1092,33 @@ public class SubtitleApiLite
 
     private void OnSubtitleLoaded(object? sender, SubtitleData data)
     {
-        var jsData =
-            new { language = data.Language,
-                  body =
-                      data.Body.Select(e => (object) new { from = e.From, to = e.To, content = e.Content }).ToArray(),
-                  sourceUrl = data.SourceUrl };
+        // 创建原生 JS 数组，确保 forEach 等方法可用
+        var jsBody = CreateJsArray(data.Body);
+        var jsData = new { language = data.Language, body = jsBody, sourceUrl = data.SourceUrl };
         _eventManager?.Emit("subtitle.load", jsData);
+    }
+
+    /// <summary>
+    /// 创建原生 JS 数组
+    /// </summary>
+    private object CreateJsArray(IEnumerable<SubtitleEntry> entries)
+    {
+        try
+        {
+            // 使用 V8 引擎创建原生 JS 数组
+            dynamic jsArray = _engine.Evaluate("[]");
+            foreach (var entry in entries)
+            {
+                jsArray.push(new { from = entry.From, to = entry.To, content = entry.Content });
+            }
+            return jsArray;
+        }
+        catch (Exception ex)
+        {
+            LogService.Instance.Error($"Plugin:{_context.PluginId}", $"CreateJsArray failed: {ex.Message}");
+            // 回退到 C# 数组
+            return entries.Select(e => (object) new { from = e.From, to = e.To, content = e.Content }).ToArray();
+        }
     }
 
     private void OnSubtitleCleared(object? sender, EventArgs e)
@@ -1116,12 +1139,12 @@ public class SubtitleApiLite
     }
     public object? getCurrent(double? time = null) => GetCurrent(time);
 
-    public object[] GetAll()
+    public object GetAll()
     {
         var entries = SubtitleService.Instance.GetAllSubtitles();
-        return entries.Select(e => (object) new { from = e.From, to = e.To, content = e.Content }).ToArray();
+        return CreateJsArray(entries);
     }
-    public object[] getAll() => GetAll();
+    public object getAll() => GetAll();
 
     public int On(string eventName, object callback)
     {

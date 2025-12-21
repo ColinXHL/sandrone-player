@@ -17,7 +17,6 @@ public class PluginContext : IDisposable
     private V8ScriptEngine? _jsEngine;
     private bool _disposed;
     private bool _isLoaded;
-    private bool _useNewEngine;
     private PluginConfig? _config;
     private PluginEngineOptions? _engineOptions;
 
@@ -61,45 +60,44 @@ public class PluginContext : IDisposable
     /// </summary>
     public string? LastError { get; private set; }
 
-    /// <summary>
-    /// 是否使用新引擎（v2 API）
-    /// </summary>
-    public bool UseNewEngine => _useNewEngine;
-
 #endregion
 
 #region Constructor
 
     /// <summary>
-    /// 创建插件上下文（旧版构造函数，保留向后兼容）
+    /// 创建插件上下文（测试用简化构造函数）
+    /// 仅初始化基础 V8 引擎，不注入 Plugin API
     /// </summary>
     /// <param name="manifest">插件清单</param>
     /// <param name="pluginDirectory">插件目录（源码目录）</param>
     public PluginContext(PluginManifest manifest, string pluginDirectory)
-        : this(manifest, pluginDirectory, null, null, false)
     {
+        Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        PluginId = manifest.Id ?? throw new ArgumentException("插件 ID 不能为空");
+        PluginDirectory = pluginDirectory ?? throw new ArgumentNullException(nameof(pluginDirectory));
+        ConfigDirectory = pluginDirectory;
+
+        InitializeBasicEngine();
     }
 
     /// <summary>
-    /// 创建插件上下文（新版构造函数，使用 PluginEngine 初始化）
+    /// 创建插件上下文（生产用完整构造函数）
     /// </summary>
     /// <param name="manifest">插件清单</param>
     /// <param name="pluginDirectory">插件目录（源码目录）</param>
     /// <param name="config">插件配置</param>
     /// <param name="options">引擎选项</param>
-    /// <param name="useNewEngine">是否使用新引擎</param>
-    public PluginContext(PluginManifest manifest, string pluginDirectory, PluginConfig? config,
-                         PluginEngineOptions? options, bool useNewEngine)
+    private PluginContext(PluginManifest manifest, string pluginDirectory, PluginConfig config,
+                          PluginEngineOptions? options)
     {
         Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
         PluginId = manifest.Id ?? throw new ArgumentException("插件 ID 不能为空");
         PluginDirectory = pluginDirectory ?? throw new ArgumentNullException(nameof(pluginDirectory));
-        ConfigDirectory = pluginDirectory; // 默认配置目录与源码目录相同
+        ConfigDirectory = pluginDirectory;
         _config = config;
         _engineOptions = options;
-        _useNewEngine = useNewEngine;
 
-        InitializeEngine();
+        InitializeWithPluginEngine();
     }
 
 #endregion
@@ -107,7 +105,7 @@ public class PluginContext : IDisposable
 #region Factory Methods
 
     /// <summary>
-    /// 创建使用新引擎（v2 API）的插件上下文
+    /// 创建插件上下文（生产环境使用）
     /// </summary>
     /// <param name="manifest">插件清单</param>
     /// <param name="pluginDirectory">插件源码目录</param>
@@ -115,12 +113,11 @@ public class PluginContext : IDisposable
     /// <param name="config">插件配置</param>
     /// <param name="options">引擎选项</param>
     /// <returns>插件上下文实例</returns>
-    public static PluginContext CreateWithNewEngine(PluginManifest manifest, string pluginDirectory,
-                                                    string configDirectory, PluginConfig config,
-                                                    PluginEngineOptions? options = null)
+    public static PluginContext Create(PluginManifest manifest, string pluginDirectory, string configDirectory,
+                                       PluginConfig config, PluginEngineOptions? options = null)
     {
-        var context = new PluginContext(manifest, pluginDirectory, config, options,
-                                        useNewEngine: true) { ConfigDirectory = configDirectory };
+        var context =
+            new PluginContext(manifest, pluginDirectory, config, options) { ConfigDirectory = configDirectory };
         return context;
     }
 
@@ -129,63 +126,34 @@ public class PluginContext : IDisposable
 #region Engine Initialization
 
     /// <summary>
-    /// 初始化 V8 引擎
+    /// 初始化基础 V8 引擎（测试用）
     /// </summary>
-    private void InitializeEngine()
+    private void InitializeBasicEngine()
     {
-        if (_useNewEngine && _config != null)
-        {
-            // 使用新的 PluginEngine 初始化
-            InitializeWithPluginEngine();
-        }
-        else
-        {
-            // 使用旧的初始化方式（向后兼容）
-            InitializeLegacyEngine();
-        }
+        _jsEngine = new V8ScriptEngine(V8ScriptEngineFlags.EnableDebugging);
+        _jsEngine.MaxRuntimeHeapSize = (UIntPtr)50_000_000;
+        _jsEngine.MaxRuntimeStackUsage = (UIntPtr)(100 * 1024);
+        _jsEngine.AddHostObject("console", new ConsoleProxy(PluginId));
     }
 
     /// <summary>
-    /// 使用 PluginEngine 初始化引擎（新 v2 API）
+    /// 使用 PluginEngine 初始化引擎（生产用）
     /// </summary>
     private void InitializeWithPluginEngine()
     {
-        // 创建 V8 引擎，启用关键标志
         var engineFlags = V8ScriptEngineFlags.EnableDebugging | V8ScriptEngineFlags.UseCaseInsensitiveMemberBinding |
                           V8ScriptEngineFlags.EnableTaskPromiseConversion;
 
         _jsEngine = new V8ScriptEngine(engineFlags);
-
-        // 配置内存限制
-        _jsEngine.MaxRuntimeHeapSize = (UIntPtr)50_000_000;     // 50MB
-        _jsEngine.MaxRuntimeStackUsage = (UIntPtr)(100 * 1024); // 100KB stack
-
-        // 注入基础 console 用于调试
+        _jsEngine.MaxRuntimeHeapSize = (UIntPtr)50_000_000;
+        _jsEngine.MaxRuntimeStackUsage = (UIntPtr)(100 * 1024);
         _jsEngine.AddHostObject("console", new ConsoleProxy(PluginId));
 
-        // 使用 PluginEngine 初始化所有 API
         var libraryPaths = Manifest.Library?.ToArray();
         PluginEngine.InitializeEngine(_jsEngine, PluginDirectory, ConfigDirectory, libraryPaths, _config!, Manifest,
                                       _engineOptions);
 
-        Log($"使用新引擎初始化完成 (library paths: {libraryPaths?.Length ?? 0}, http_allowed_urls: {Manifest.HttpAllowedUrls?.Count ?? 0})");
-    }
-
-    /// <summary>
-    /// 使用旧方式初始化引擎（向后兼容）
-    /// </summary>
-    private void InitializeLegacyEngine()
-    {
-        _jsEngine = new V8ScriptEngine(V8ScriptEngineFlags.EnableDebugging);
-
-        // 限制内存使用 (50MB)
-        _jsEngine.MaxRuntimeHeapSize = (UIntPtr)50_000_000;
-
-        // 限制递归深度
-        _jsEngine.MaxRuntimeStackUsage = (UIntPtr)(100 * 1024); // 100KB stack
-
-        // 注入基础 console 用于调试
-        _jsEngine.AddHostObject("console", new ConsoleProxy(PluginId));
+        Log($"引擎初始化完成 (library paths: {libraryPaths?.Length ?? 0}, http_allowed_urls: {Manifest.HttpAllowedUrls?.Count ?? 0})");
     }
 
 #endregion
@@ -397,53 +365,15 @@ public class PluginContext : IDisposable
 #region Lifecycle
 
     /// <summary>
-    /// 设置插件 API 并注入到 JS 引擎（旧版 API，向后兼容）
-    /// </summary>
-    /// <param name="api">插件 API 对象</param>
-    public void SetApi(PluginApi api)
-    {
-        if (_disposed || _jsEngine == null || api == null)
-            return;
-
-        // 新引擎不需要注入 api 对象（已通过 PluginEngine 暴露全局对象）
-        if (_useNewEngine)
-        {
-            Log("新引擎模式：跳过 SetApi（API 已作为全局对象暴露）");
-            return;
-        }
-
-        // 将 API 注入到 JS 全局作用域（旧版）
-        _jsEngine.AddHostObject("api", api);
-    }
-
-    /// <summary>
     /// 调用 onLoad 生命周期函数
     /// </summary>
-    /// <param name="api">插件 API 对象（旧版需要，新版可选）</param>
     /// <returns>是否成功</returns>
-    public bool CallOnLoad(object? api = null)
+    public bool CallOnLoad()
     {
         if (_isLoaded)
             return true;
 
-        // 如果提供了 API 且不是新引擎模式，先注入到 JS 引擎
-        if (api is PluginApi pluginApi && !_useNewEngine)
-        {
-            SetApi(pluginApi);
-        }
-
-        bool result;
-        if (_useNewEngine)
-        {
-            // 新引擎模式：onLoad 不需要参数（API 已作为全局对象暴露）
-            result = InvokeFunction("onLoad");
-        }
-        else
-        {
-            // 旧版模式：传递 api 参数
-            result = api != null ? InvokeFunction("onLoad", api) : InvokeFunction("onLoad");
-        }
-
+        var result = InvokeFunction("onLoad");
         if (result)
         {
             _isLoaded = true;
@@ -454,25 +384,13 @@ public class PluginContext : IDisposable
     /// <summary>
     /// 调用 onUnload 生命周期函数
     /// </summary>
-    /// <param name="api">插件 API 对象（旧版需要，新版可选）</param>
     /// <returns>是否成功</returns>
-    public bool CallOnUnload(object? api = null)
+    public bool CallOnUnload()
     {
         if (!_isLoaded)
             return true;
 
-        bool result;
-        if (_useNewEngine)
-        {
-            // 新引擎模式：onUnload 不需要参数
-            result = InvokeFunction("onUnload");
-        }
-        else
-        {
-            // 旧版模式：如果提供了 API，传递给 onUnload；否则使用全局注入的 api
-            result = api != null ? InvokeFunction("onUnload", api) : InvokeFunction("onUnload");
-        }
-
+        var result = InvokeFunction("onUnload");
         _isLoaded = false;
         return result;
     }
