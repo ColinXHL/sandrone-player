@@ -255,6 +255,10 @@ public partial class App : System.Windows.Application
 
         _hotkeyService.ToggleClickThrough += (s, e) =>
         {
+            // 最大化时禁用穿透热键
+            if (_playerWindow?.IsMaximized == true)
+                return;
+
             var isClickThrough = _playerWindow?.ToggleClickThrough();
             if (isClickThrough.HasValue)
             {
