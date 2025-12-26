@@ -124,3 +124,9 @@ WebView2Data/
 
 #kiro
 .kiro/*
+
+#claude code
+CLAUDE.md
+
+#dev-docs
+.dev-docs/*
