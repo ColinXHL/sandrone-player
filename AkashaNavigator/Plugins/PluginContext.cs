@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using AkashaNavigator.Models.Plugin;
+using AkashaNavigator.Plugins.Utils;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
 
@@ -60,6 +61,11 @@ public class PluginContext : IDisposable
     /// </summary>
     public string? LastError { get; private set; }
 
+    /// <summary>
+    /// V8 脚本引擎实例（用于 API 初始化）
+    /// </summary>
+    public V8ScriptEngine? Engine => _jsEngine;
+
 #endregion
 
 #region Constructor
@@ -78,6 +84,23 @@ public class PluginContext : IDisposable
         ConfigDirectory = pluginDirectory;
 
         InitializeBasicEngine();
+    }
+
+    /// <summary>
+    /// 创建插件上下文（用于 PluginEngine API 初始化）
+    /// 不初始化 V8 引擎，仅作为数据容器
+    /// </summary>
+    /// <param name="pluginId">插件 ID</param>
+    /// <param name="pluginDirectory">插件目录（源码目录）</param>
+    /// <param name="configDirectory">配置目录</param>
+    /// <param name="manifest">插件清单</param>
+    public PluginContext(string pluginId, string pluginDirectory, string configDirectory, PluginManifest manifest)
+    {
+        PluginId = pluginId ?? throw new ArgumentNullException(nameof(pluginId));
+        PluginDirectory = pluginDirectory ?? throw new ArgumentNullException(nameof(pluginDirectory));
+        ConfigDirectory = configDirectory ?? throw new ArgumentNullException(nameof(configDirectory));
+        Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
+        // 不初始化引擎，仅作为数据容器使用
     }
 
     /// <summary>

@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Services;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// 设置代理对象

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 using Xunit;
 
 namespace AkashaNavigator.Tests
@@ -54,10 +55,10 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void Play_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
         // 不应该抛出异常
-        playerApi.Play();
+        playerApi.play();
     }
 
     /// <summary>
@@ -68,9 +69,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void Pause_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.Pause();
+        playerApi.pause();
     }
 
     /// <summary>
@@ -81,9 +82,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void TogglePlay_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.TogglePlay();
+        playerApi.play();
     }
 
     /// <summary>
@@ -94,11 +95,11 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void Seek_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.Seek(30.0);
-        playerApi.Seek(0);
-        playerApi.Seek(-10); // 负数应该被处理
+        playerApi.seek(30.0);
+        playerApi.seek(0);
+        playerApi.seek(-10); // 负数应该被处理
     }
 
     /// <summary>
@@ -109,11 +110,11 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void SeekRelative_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.SeekRelative(10);
-        playerApi.SeekRelative(-10);
-        playerApi.SeekRelative(0);
+        playerApi.seek(10);
+        playerApi.seek(-10);
+        playerApi.seek(0);
     }
 
     /// <summary>
@@ -124,9 +125,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void GetCurrentTime_NoWindow_ReturnsZero()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        var result = playerApi.GetCurrentTime();
+        var result = playerApi.currentTime;
 
         Assert.Equal(0, result);
     }
@@ -139,9 +140,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void GetDuration_NoWindow_ReturnsZero()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        var result = playerApi.GetDuration();
+        var result = playerApi.duration;
 
         Assert.Equal(0, result);
     }
@@ -154,11 +155,11 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void SetPlaybackRate_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.SetPlaybackRate(1.0);
-        playerApi.SetPlaybackRate(2.0);
-        playerApi.SetPlaybackRate(0.5);
+        playerApi.setPlaybackRate(1.0);
+        playerApi.setPlaybackRate(2.0);
+        playerApi.setPlaybackRate(0.5);
     }
 
     /// <summary>
@@ -186,9 +187,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void GetPlaybackRate_NoWindow_ReturnsDefault()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        var result = playerApi.GetPlaybackRate();
+        var result = playerApi.playbackRate;
 
         Assert.Equal(1.0, result);
     }
@@ -201,11 +202,11 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void SetVolume_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.SetVolume(0.5);
-        playerApi.SetVolume(0);
-        playerApi.SetVolume(1.0);
+        playerApi.setVolume(0.5);
+        playerApi.setVolume(0);
+        playerApi.setVolume(1.0);
     }
 
     /// <summary>
@@ -232,9 +233,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void GetVolume_NoWindow_ReturnsDefault()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        var result = playerApi.GetVolume();
+        var result = playerApi.volume;
 
         Assert.Equal(1.0, result);
     }
@@ -247,10 +248,10 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void SetMuted_NoWindow_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        playerApi.SetMuted(true);
-        playerApi.SetMuted(false);
+        playerApi.setMuted(true);
+        playerApi.setMuted(false);
     }
 
     /// <summary>
@@ -261,9 +262,9 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void IsMuted_NoWindow_ReturnsFalse()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
 
-        var result = playerApi.IsMuted();
+        var result = playerApi.muted;
 
         Assert.False(result);
     }
@@ -278,11 +279,11 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void SetEventManager_ShouldNotThrow()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
         var eventManager = new EventManager();
 
         playerApi.SetEventManager(eventManager);
-        playerApi.SetEventManager(null);
+        playerApi.SetEventManager(null!);
     }
 
     /// <summary>
@@ -292,14 +293,14 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void Play_WithEventManager_ShouldTriggerEvent()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
         var eventManager = new EventManager();
         playerApi.SetEventManager(eventManager);
 
         var eventTriggered = false;
         eventManager.On(EventManager.PlayStateChanged, (Action<object>)((data) => eventTriggered = true));
 
-        playerApi.Play();
+        playerApi.play();
 
         // 由于没有窗口，Play 方法会直接触发事件
         Assert.True(eventTriggered);
@@ -313,14 +314,14 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void Pause_WithEventManager_ShouldTriggerEvent()
     {
-        var playerApi = new PlayerApi(_context);
+        var playerApi = new PlayerApi(_context, null);
         var eventManager = new EventManager();
         playerApi.SetEventManager(eventManager);
 
         var eventTriggered = false;
         eventManager.On(EventManager.PlayStateChanged, (Action<object>)((data) => eventTriggered = true));
 
-        playerApi.Pause();
+        playerApi.pause();
 
         Assert.True(eventTriggered);
 
@@ -337,7 +338,7 @@ public class PlayerApiTests : IDisposable
     [Fact]
     public void Constructor_NullContext_ShouldThrow()
     {
-        Assert.Throws<ArgumentNullException>(() => new PlayerApi(null!));
+        Assert.Throws<ArgumentNullException>(() => new PlayerApi(null!, () => null));
     }
 
     /// <summary>

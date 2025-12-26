@@ -4,6 +4,7 @@ using System.Diagnostics;
 using Microsoft.ClearScript;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Views.Windows;
+using AkashaNavigator.Plugins.Utils;
 
 namespace AkashaNavigator.Plugins
 {
@@ -163,21 +164,26 @@ public class PluginApi
 
         // 初始化现有需要权限的 API
         _overlayApi = new OverlayApi(context, Config);
-        _subtitleApi = new SubtitleApi(context);
+        // SubtitleApi 需要 V8ScriptEngine，从 context 获取
+        if (context.Engine != null)
+        {
+            _subtitleApi = new SubtitleApi(context, context.Engine);
+            _subtitleApi.SetEventManager(_eventManager);
+        }
 
         // 初始化新增的需要权限的 API
-        _playerApi = _globalWindowGetter != null ? new PlayerApi(context, _globalWindowGetter) : new PlayerApi(context);
-        _windowApi = _globalWindowGetter != null ? new WindowApi(context, _globalWindowGetter) : new WindowApi(context);
+        _playerApi = _globalWindowGetter != null ? new PlayerApi(context, _globalWindowGetter) : null;
+        _windowApi = _globalWindowGetter != null ? new WindowApi(context, _globalWindowGetter) : null;
         _storageApi = new StorageApi(context);
         _httpApi = new HttpApi(context);
-        _eventApi = new EventApi(context);
+        _eventApi = new EventApi(context, _eventManager);
 
         // 将 EventManager 引用传递给所有需要触发事件的 API
         // 这确保所有 API 使用同一个 EventManager 实例，实现统一的事件系统
-        _windowApi.SetEventManager(_eventManager);
-        _playerApi.SetEventManager(_eventManager);
-        _eventApi.SetEventManager(_eventManager);
-        _subtitleApi.SetEventManager(_eventManager);
+        if (_windowApi != null)
+            _windowApi.SetEventManager(_eventManager);
+        if (_playerApi != null)
+            _playerApi.SetEventManager(_eventManager);
 
         Services.LogService.Instance.Debug(
             "PluginApi", "_overlayApi is null = {OverlayNull}, Overlay property is null = {OverlayPropNull}",
@@ -270,20 +276,9 @@ public class PluginApi
 
         // 清理已初始化的子 API，使用 try-catch 确保一个 API 失败不影响其他 API 的清理
         // 只清理那些实际被初始化的 API（即不为 null 的 API）
-        if (_overlayApi != null)
-            TryCleanupApi("OverlayApi", () => _overlayApi.Cleanup());
+        // 注意：只有 SubtitleApi 有 Cleanup 方法（取消订阅服务事件）
         if (_subtitleApi != null)
             TryCleanupApi("SubtitleApi", () => _subtitleApi.Cleanup());
-        if (_playerApi != null)
-            TryCleanupApi("PlayerApi", () => _playerApi.Cleanup());
-        if (_windowApi != null)
-            TryCleanupApi("WindowApi", () => _windowApi.Cleanup());
-        if (_storageApi != null)
-            TryCleanupApi("StorageApi", () => _storageApi.Cleanup());
-        if (_httpApi != null)
-            TryCleanupApi("HttpApi", () => _httpApi.Cleanup());
-        if (_eventApi != null)
-            TryCleanupApi("EventApi", () => _eventApi.Cleanup());
 
         // 最后清理共享的事件管理器
         // 这必须在所有子 API 清理之后执行，因为子 API 的清理过程可能会触发事件

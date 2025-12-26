@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.ClearScript;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// ScriptMember 属性验证器

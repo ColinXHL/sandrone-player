@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// HTTP URL 白名单验证器

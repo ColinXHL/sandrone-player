@@ -7,7 +7,7 @@ using System.Text.Json;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// JavaScript 类型转换工具类

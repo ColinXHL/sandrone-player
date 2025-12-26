@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 using FsCheck;
 using FsCheck.Xunit;
 using Xunit;

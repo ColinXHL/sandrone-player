@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 using FsCheck;
 using FsCheck.Xunit;
 using Xunit;
@@ -17,6 +18,7 @@ public class EventApiTests : IDisposable
     private readonly string _tempDir;
     private readonly PluginContext _context;
     private readonly EventApi _eventApi;
+    private readonly EventManager _eventManager;
 
     public EventApiTests()
     {
@@ -29,7 +31,8 @@ public class EventApiTests : IDisposable
         File.WriteAllText(Path.Combine(_tempDir, "main.js"), "function onLoad() {} function onUnload() {}");
 
         _context = new PluginContext(manifest, _tempDir);
-        _eventApi = new EventApi(_context);
+        _eventManager = new EventManager();
+        _eventApi = new EventApi(_context, _eventManager);
     }
 
     public void Dispose()
@@ -59,7 +62,7 @@ public class EventApiTests : IDisposable
     public Property EventListenerManagement_OnAndOff(PositiveInt eventIndex)
     {
         // 使用支持的事件名称
-        var eventName = EventApi.SupportedEvents[eventIndex.Get % EventApi.SupportedEvents.Length];
+        var eventName = EventManager.SupportedEvents[eventIndex.Get % EventManager.SupportedEvents.Length];
 
         var callCount = 0;
         object? receivedData = null;
@@ -70,25 +73,25 @@ public class EventApiTests : IDisposable
         };
 
         // 注册监听器
-        _eventApi.On(eventName, callback);
-        var listenerCountAfterOn = _eventApi.GetListenerCount(eventName);
+        var subscriptionId = _eventApi.on(eventName, callback);
+        var listenerCountAfterOn = _eventManager.GetListenerCount(eventName);
 
         // 触发事件
         var testData = new { test = "value" };
-        _eventApi.Emit(eventName, testData);
+        _eventApi.emit(eventName, testData);
         var callCountAfterEmit = callCount;
 
-        // 取消监听器
-        _eventApi.Off(eventName, callback);
-        var listenerCountAfterOff = _eventApi.GetListenerCount(eventName);
+        // 取消监听器（使用订阅 ID）
+        _eventApi.off(eventName, subscriptionId);
+        var listenerCountAfterOff = _eventManager.GetListenerCount(eventName);
 
         // 再次触发事件
         callCount = 0;
-        _eventApi.Emit(eventName, testData);
+        _eventApi.emit(eventName, testData);
         var callCountAfterOffEmit = callCount;
 
         // 清理
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
 
         var isCorrect = listenerCountAfterOn == 1 && callCountAfterEmit == 1 && listenerCountAfterOff == 0 &&
                         callCountAfterOffEmit == 0;
@@ -115,20 +118,20 @@ public class EventApiTests : IDisposable
         {
             var index = i;
             callbacks[i] = (data) => callCounts[index]++;
-            _eventApi.On(eventName, callbacks[i]);
+            _eventApi.on(eventName, callbacks[i]);
         }
 
-        var registeredCount = _eventApi.GetListenerCount(eventName);
+        var registeredCount = _eventManager.GetListenerCount(eventName);
 
         // 触发事件
-        _eventApi.Emit(eventName, new {});
+        _eventApi.emit(eventName, new {});
 
         // 验证所有监听器都被调用
         var allCalled = callCounts.All(c => c == 1);
         var totalCalls = callCounts.Sum();
 
         // 清理
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
 
         var isCorrect = registeredCount == listenerCount && allCalled && totalCalls == listenerCount;
 
@@ -151,24 +154,24 @@ public class EventApiTests : IDisposable
         for (int i = 0; i < listenerCount; i++)
         {
             var index = i;
-            _eventApi.On(eventName, (data) => callCounts[index]++);
+            _eventApi.on(eventName, (Action<object>)(data => callCounts[index]++));
         }
 
-        var countBeforeOff = _eventApi.GetListenerCount(eventName);
+        var countBeforeOff = _eventManager.GetListenerCount(eventName);
 
         // 使用 Off(eventName, null) 移除所有监听器
-        _eventApi.Off(eventName, null);
+        _eventApi.off(eventName, null);
 
-        var countAfterOff = _eventApi.GetListenerCount(eventName);
+        var countAfterOff = _eventManager.GetListenerCount(eventName);
 
         // 触发事件
-        _eventApi.Emit(eventName, new {});
+        _eventApi.emit(eventName, new {});
 
         // 验证没有监听器被调用
         var totalCalls = callCounts.Sum();
 
         // 清理
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
 
         var isCorrect = countBeforeOff == listenerCount && countAfterOff == 0 && totalCalls == 0;
 
@@ -190,13 +193,13 @@ public class EventApiTests : IDisposable
         Action<object> callback = (data) =>
         {};
 
-        Assert.Equal(0, _eventApi.GetListenerCount(eventName));
+        Assert.Equal(0, _eventManager.GetListenerCount(eventName));
 
-        _eventApi.On(eventName, callback);
+        _eventApi.on(eventName, callback);
 
-        Assert.Equal(1, _eventApi.GetListenerCount(eventName));
+        Assert.Equal(1, _eventManager.GetListenerCount(eventName));
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
     }
 
     /// <summary>
@@ -210,13 +213,13 @@ public class EventApiTests : IDisposable
         Action<object> callback = (data) =>
         {};
 
-        _eventApi.On(eventName, callback);
-        _eventApi.On(eventName, callback);
+        _eventApi.on(eventName, callback);
+        _eventApi.on(eventName, callback);
 
         // 每次注册都是独立的订阅，所以计数应该是 2
-        Assert.Equal(2, _eventApi.GetListenerCount(eventName));
+        Assert.Equal(2, _eventManager.GetListenerCount(eventName));
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
     }
 
     /// <summary>
@@ -229,11 +232,11 @@ public class EventApiTests : IDisposable
         Action<object> callback = (data) =>
         {};
 
-        _eventApi.On(eventName, callback);
-        Assert.Equal(1, _eventApi.GetListenerCount(eventName));
+        var subscriptionId = _eventApi.on(eventName, callback);
+        Assert.Equal(1, _eventManager.GetListenerCount(eventName));
 
-        _eventApi.Off(eventName, callback);
-        Assert.Equal(0, _eventApi.GetListenerCount(eventName));
+        _eventApi.off(eventName, subscriptionId);
+        Assert.Equal(0, _eventManager.GetListenerCount(eventName));
     }
 
     /// <summary>
@@ -246,15 +249,15 @@ public class EventApiTests : IDisposable
         var callCount1 = 0;
         var callCount2 = 0;
 
-        _eventApi.On(eventName, (data) => callCount1++);
-        _eventApi.On(eventName, (data) => callCount2++);
+        _eventApi.on(eventName, (Action<object>)((data) => callCount1++));
+        _eventApi.on(eventName, (Action<object>)((data) => callCount2++));
 
-        _eventApi.Emit(eventName, new {});
+        _eventApi.emit(eventName, new {});
 
         Assert.Equal(1, callCount1);
         Assert.Equal(1, callCount2);
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
     }
 
     /// <summary>
@@ -266,14 +269,14 @@ public class EventApiTests : IDisposable
         var eventName = "testEvent";
         object? receivedData = null;
 
-        _eventApi.On(eventName, (data) => receivedData = data);
+        _eventApi.on(eventName, (Action<object>)((data) => receivedData = data));
 
         var testData = new { value = 42, name = "test" };
-        _eventApi.Emit(eventName, testData);
+        _eventApi.emit(eventName, testData);
 
         Assert.Same(testData, receivedData);
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
     }
 
     /// <summary>
@@ -285,16 +288,16 @@ public class EventApiTests : IDisposable
         var eventName = "testEvent";
         var callCount = 0;
 
-        _eventApi.On(eventName, (data) => throw new Exception("Test exception"));
-        _eventApi.On(eventName, (data) => callCount++);
+        _eventApi.on(eventName, (Action<object>)((data) => throw new Exception("Test exception")));
+        _eventApi.on(eventName, (Action<object>)((data) => callCount++));
 
         // 不应该抛出异常
-        _eventApi.Emit(eventName, new {});
+        _eventApi.emit(eventName, new {});
 
         // 第二个回调应该被调用
         Assert.Equal(1, callCount);
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
     }
 
     /// <summary>
@@ -303,18 +306,18 @@ public class EventApiTests : IDisposable
     [Fact]
     public void ClearAllListeners_ShouldRemoveAll()
     {
-        _eventApi.On("event1", (data) =>
+        _eventApi.on("event1", (object data) =>
                                {});
-        _eventApi.On("event2", (data) =>
+        _eventApi.on("event2", (object data) =>
                                {});
-        _eventApi.On("event3", (data) =>
+        _eventApi.on("event3", (object data) =>
                                {});
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
 
-        Assert.Equal(0, _eventApi.GetListenerCount("event1"));
-        Assert.Equal(0, _eventApi.GetListenerCount("event2"));
-        Assert.Equal(0, _eventApi.GetListenerCount("event3"));
+        Assert.Equal(0, _eventManager.GetListenerCount("event1"));
+        Assert.Equal(0, _eventManager.GetListenerCount("event2"));
+        Assert.Equal(0, _eventManager.GetListenerCount("event3"));
     }
 
     /// <summary>
@@ -326,12 +329,12 @@ public class EventApiTests : IDisposable
         var callCount = 0;
         Action<object> callback = (data) => callCount++;
 
-        _eventApi.On("TestEvent", callback);
-        _eventApi.Emit("testevent", new {});
+        _eventApi.on("TestEvent", callback);
+        _eventApi.emit("testevent", new {});
 
         Assert.Equal(1, callCount);
 
-        _eventApi.ClearAllListeners();
+        _eventManager.Clear();
     }
 
     /// <summary>
@@ -340,15 +343,15 @@ public class EventApiTests : IDisposable
     [Fact]
     public void On_EmptyEventName_ShouldBeIgnored()
     {
-        _eventApi.On("", (data) =>
+        _eventApi.on("", (object data) =>
                          {});
-        _eventApi.On(null!, (data) =>
+        _eventApi.on(null!, (object data) =>
                             {});
-        _eventApi.On("  ", (data) =>
+        _eventApi.on("  ", (object data) =>
                            {});
 
         // 不应该抛出异常，也不应该注册任何监听器
-        Assert.Equal(0, _eventApi.GetListenerCount(""));
+        Assert.Equal(0, _eventManager.GetListenerCount(""));
     }
 
     /// <summary>
@@ -357,9 +360,9 @@ public class EventApiTests : IDisposable
     [Fact]
     public void On_NullCallback_ShouldBeIgnored()
     {
-        _eventApi.On("testEvent", null!);
+        _eventApi.on("testEvent", null!);
 
-        Assert.Equal(0, _eventApi.GetListenerCount("testEvent"));
+        Assert.Equal(0, _eventManager.GetListenerCount("testEvent"));
     }
 
 #endregion

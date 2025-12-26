@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 using FsCheck;
 using FsCheck.Xunit;
 using Xunit;
@@ -57,7 +58,7 @@ public class WindowApiTests : IDisposable
     [Property(MaxTest = 100)]
     public Property OpacityRoundTrip_NoWindow_ReturnsDefault(PositiveInt seed)
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
 
         // 生成 0.2 到 1.0 之间的透明度值
         var opacity = 0.2 + (seed.Get % 81) / 100.0; // 0.2 到 1.0
@@ -66,7 +67,7 @@ public class WindowApiTests : IDisposable
         windowApi.SetOpacity(opacity);
 
         // 获取透明度（无窗口时应该返回默认值 1.0）
-        var result = windowApi.GetOpacity();
+        var result = windowApi.Opacity;
 
         return (result == 1.0).Label($"Opacity: {opacity}, Result: {result}");
     }
@@ -102,13 +103,13 @@ public class WindowApiTests : IDisposable
     [Property(MaxTest = 100)]
     public Property ClickThroughConsistency_NoWindow_ReturnsDefault(bool enabled)
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
 
         // 设置穿透模式（无窗口时应该静默失败）
         windowApi.SetClickThrough(enabled);
 
         // 获取穿透模式（无窗口时应该返回默认值 false）
-        var result = windowApi.IsClickThrough();
+        var result = windowApi.ClickThrough;
 
         return (result == false).Label($"Enabled: {enabled}, Result: {result}");
     }
@@ -126,7 +127,7 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void WindowApi_SetEventManager_ShouldIntegrate()
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
         var eventManager = new EventManager();
 
         // 设置 EventManager
@@ -158,7 +159,7 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void WindowApi_NullEventManager_ShouldNotThrow()
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
 
         // 不设置 EventManager，调用方法不应该抛出异常
         windowApi.SetOpacity(0.5);
@@ -178,8 +179,8 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void GetOpacity_NoWindow_ReturnsDefault()
     {
-        var windowApi = new WindowApi(_context);
-        var result = windowApi.GetOpacity();
+        var windowApi = new WindowApi(_context, null);
+        var result = windowApi.Opacity;
         Assert.Equal(1.0, result);
     }
 
@@ -189,8 +190,8 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void IsClickThrough_NoWindow_ReturnsFalse()
     {
-        var windowApi = new WindowApi(_context);
-        var result = windowApi.IsClickThrough();
+        var windowApi = new WindowApi(_context, null);
+        var result = windowApi.ClickThrough;
         Assert.False(result);
     }
 
@@ -200,8 +201,8 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void IsTopmost_NoWindow_ReturnsTrue()
     {
-        var windowApi = new WindowApi(_context);
-        var result = windowApi.IsTopmost();
+        var windowApi = new WindowApi(_context, null);
+        var result = windowApi.Topmost;
         Assert.True(result);
     }
 
@@ -211,8 +212,8 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void GetBounds_NoWindow_ReturnsDefault()
     {
-        var windowApi = new WindowApi(_context);
-        var result = windowApi.GetBounds();
+        var windowApi = new WindowApi(_context, null);
+        var result = windowApi.Bounds;
 
         Assert.NotNull(result);
 
@@ -235,7 +236,7 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void SetOpacity_NoWindow_ShouldNotThrow()
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
 
         // 不应该抛出异常
         windowApi.SetOpacity(0.5);
@@ -250,7 +251,7 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void SetClickThrough_NoWindow_ShouldNotThrow()
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
 
         windowApi.SetClickThrough(true);
         windowApi.SetClickThrough(false);
@@ -262,7 +263,7 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void SetTopmost_NoWindow_ShouldNotThrow()
     {
-        var windowApi = new WindowApi(_context);
+        var windowApi = new WindowApi(_context, null);
 
         windowApi.SetTopmost(true);
         windowApi.SetTopmost(false);
@@ -283,7 +284,7 @@ public class WindowApiTests : IDisposable
     [Fact]
     public void Constructor_WithNullContext_ShouldThrow()
     {
-        Assert.Throws<ArgumentNullException>(() => new WindowApi(null!));
+        Assert.Throws<ArgumentNullException>(() => new WindowApi(null!, () => null));
     }
 
 #endregion

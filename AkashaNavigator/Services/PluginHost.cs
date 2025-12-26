@@ -6,6 +6,7 @@ using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Models.Common;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 
 namespace AkashaNavigator.Services
 {
@@ -258,7 +259,7 @@ public class PluginHost : IDisposable
             // 触发事件
             try
             {
-                pluginApi.Event?.Emit(eventName, data);
+                pluginApi.Event?.emit(eventName, data);
             }
             catch (Exception ex)
             {
@@ -273,7 +274,7 @@ public class PluginHost : IDisposable
     /// <param name="playing">是否正在播放</param>
     public void BroadcastPlayStateChanged(bool playing)
     {
-        BroadcastEvent(Plugins.EventApi.PlayStateChanged, new { playing });
+        BroadcastEvent(EventManager.PlayStateChanged, new { playing });
     }
 
     /// <summary>
@@ -283,7 +284,7 @@ public class PluginHost : IDisposable
     /// <param name="duration">总时长（秒）</param>
     public void BroadcastTimeUpdate(double currentTime, double duration)
     {
-        BroadcastEvent(Plugins.EventApi.TimeUpdate, new { currentTime, duration });
+        BroadcastEvent(EventManager.TimeUpdate, new { currentTime, duration });
     }
 
     /// <summary>
@@ -292,7 +293,7 @@ public class PluginHost : IDisposable
     /// <param name="url">新 URL</param>
     public void BroadcastUrlChanged(string url)
     {
-        BroadcastEvent(Plugins.EventApi.UrlChanged, new { url });
+        BroadcastEvent(EventManager.UrlChanged, new { url });
     }
 
     /// <summary>

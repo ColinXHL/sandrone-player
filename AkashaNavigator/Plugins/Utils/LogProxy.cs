@@ -2,7 +2,7 @@ using System;
 using Microsoft.ClearScript;
 using Serilog;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// 插件日志代理

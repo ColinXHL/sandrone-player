@@ -5,6 +5,7 @@ using System.Text.Json;
 using Xunit;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 
 namespace AkashaNavigator.Tests
 {

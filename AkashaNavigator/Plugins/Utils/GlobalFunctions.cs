@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// 全局便捷函数

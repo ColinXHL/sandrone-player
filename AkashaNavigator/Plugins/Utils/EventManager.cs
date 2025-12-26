@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Microsoft.ClearScript;
 
-namespace AkashaNavigator.Plugins
+namespace AkashaNavigator.Plugins.Utils
 {
 /// <summary>
 /// 统一的事件管理器

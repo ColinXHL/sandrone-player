@@ -1,5 +1,6 @@
 using Xunit;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 using System.Linq;
 
 namespace AkashaNavigator.Tests

@@ -9,6 +9,7 @@ using AkashaNavigator.Models.Profile;
 using AkashaNavigator.Models.Plugin;
 using AkashaNavigator.Models.Common;
 using AkashaNavigator.Plugins;
+using AkashaNavigator.Plugins.Utils;
 
 namespace AkashaNavigator.Services
 {
@@ -199,7 +200,7 @@ public class ProfileManager
         PluginHost.Instance.LoadPluginsForProfile(profileId);
 
         // 广播 profileChanged 事件到插件
-        PluginHost.Instance.BroadcastEvent(Plugins.EventApi.ProfileChanged, new { profileId = profile.Id });
+        PluginHost.Instance.BroadcastEvent(EventManager.ProfileChanged, new { profileId = profile.Id });
 
         ProfileChanged?.Invoke(this, profile);
         return true;
