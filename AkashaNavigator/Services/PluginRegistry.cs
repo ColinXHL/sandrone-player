@@ -250,7 +250,7 @@ public class PluginRegistry : IPluginRegistry
 
         if (!File.Exists(RegistryFilePath))
         {
-            _logService.Warn("PluginRegistry", "索引文件不存在: {RegistryFilePath}", RegistryFilePath);
+            _logService.Warn(nameof(PluginRegistry), "索引文件不存在: {RegistryFilePath}", RegistryFilePath);
             return;
         }
 
@@ -260,12 +260,12 @@ public class PluginRegistry : IPluginRegistry
             if (data.IsSuccess && data.Value?.Plugins != null)
             {
                 _plugins = data.Value.Plugins;
-                _logService.Debug("PluginRegistry", "已加载 {PluginCount} 个内置插件", _plugins.Count);
+                _logService.Debug(nameof(PluginRegistry), "已加载 {PluginCount} 个内置插件", _plugins.Count);
             }
         }
         catch (Exception ex)
         {
-            _logService.Error("PluginRegistry", ex, "加载索引文件失败");
+            _logService.Error(nameof(PluginRegistry), ex, "加载索引文件失败");
         }
     }
 

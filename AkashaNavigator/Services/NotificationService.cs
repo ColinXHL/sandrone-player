@@ -75,7 +75,7 @@ public class NotificationService : INotificationService
             // 确保在 UI 线程上执行
             if (Application.Current?.Dispatcher == null)
             {
-                _logService.Warn("NotificationService", "无法显示通知：Application.Current 为空");
+                _logService.Warn(nameof(NotificationService), "无法显示通知：Application.Current 为空");
                 return;
             }
 
@@ -92,7 +92,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logService.Error("NotificationService", ex, "显示通知失败");
+            _logService.Error(nameof(NotificationService), ex, "显示通知失败");
         }
     }
 
@@ -127,7 +127,7 @@ public class NotificationService : INotificationService
             // 确保在 UI 线程上执行
             if (Application.Current?.Dispatcher == null)
             {
-                _logService.Warn("NotificationService", "无法显示对话框：Application.Current 为空");
+                _logService.Warn(nameof(NotificationService), "无法显示对话框：Application.Current 为空");
                 tcs.SetResult(false);
                 return tcs.Task;
             }
@@ -145,7 +145,7 @@ public class NotificationService : INotificationService
         }
         catch (Exception ex)
         {
-            _logService.Error("NotificationService", ex, "显示对话框失败");
+            _logService.Error(nameof(NotificationService), ex, "显示对话框失败");
             tcs.TrySetResult(false);
         }
 

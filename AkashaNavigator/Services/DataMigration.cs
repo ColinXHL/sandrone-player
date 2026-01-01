@@ -279,7 +279,7 @@ public class DataMigration
         {
             // 1. 创建备份
             backup = CreateBackup();
-            _logService.Info("DataMigration", "已创建迁移备份: {BackupDirectory}", backup.BackupDirectory);
+            _logService.Info(nameof(DataMigration), "已创建迁移备份: {BackupDirectory}", backup.BackupDirectory);
 
             // 2. 获取需要迁移的插件
             var oldPlugins = GetOldStylePlugins();
@@ -316,7 +316,7 @@ public class DataMigration
                 // 检查是否已在全局库中
                 if (libraryIndex.Plugins.Any(p => string.Equals(p.Id, pluginId, StringComparison.OrdinalIgnoreCase)))
                 {
-                    _logService.Debug("DataMigration", "插件 {PluginId} 已在全局库中，跳过", pluginId);
+                    _logService.Debug(nameof(DataMigration), "插件 {PluginId} 已在全局库中，跳过", pluginId);
                     continue;
                 }
 
@@ -332,12 +332,12 @@ public class DataMigration
                                                    InstalledAt = DateTime.Now, Source = "migrated" });
 
                     migratedPluginCount++;
-                    _logService.Info("DataMigration", "已迁移插件: {PluginId}", pluginId);
+                    _logService.Info(nameof(DataMigration), "已迁移插件: {PluginId}", pluginId);
                 }
                 catch (Exception ex)
                 {
                     warnings.Add($"迁移插件 {pluginId} 失败: {ex.Message}");
-                    _logService.Warn("DataMigration", "迁移插件 {PluginId} 失败: {ErrorMessage}", pluginId,
+                    _logService.Warn(nameof(DataMigration), "迁移插件 {PluginId} 失败: {ErrorMessage}", pluginId,
                                              ex.Message);
                 }
             }
@@ -395,13 +395,13 @@ public class DataMigration
                     if (Directory.Exists(pluginsDir))
                     {
                         Directory.Delete(pluginsDir, true);
-                        _logService.Debug("DataMigration", "已删除旧插件目录: {PluginsDir}", pluginsDir);
+                        _logService.Debug(nameof(DataMigration), "已删除旧插件目录: {PluginsDir}", pluginsDir);
                     }
                 }
                 catch (Exception ex)
                 {
                     warnings.Add($"删除旧插件目录失败 [{profileId}]: {ex.Message}");
-                    _logService.Warn("DataMigration", "删除旧插件目录失败 [{PluginsDir}]: {ErrorMessage}",
+                    _logService.Warn(nameof(DataMigration), "删除旧插件目录失败 [{PluginsDir}]: {ErrorMessage}",
                                              pluginsDir, ex.Message);
                 }
             }
@@ -413,7 +413,7 @@ public class DataMigration
                 warnings.AddRange(validationErrors);
             }
 
-            _logService.Info("DataMigration",
+            _logService.Info(nameof(DataMigration),
                                      $"迁移完成: {migratedPluginCount} 个插件, {migratedProfileCount} 个 Profile");
 
             if (warnings.Count > 0)
@@ -425,7 +425,7 @@ public class DataMigration
         }
         catch (Exception ex)
         {
-            _logService.Error("DataMigration", ex, "迁移失败");
+            _logService.Error(nameof(DataMigration), ex, "迁移失败");
 
             // 尝试回滚
             if (backup != null)
@@ -433,11 +433,11 @@ public class DataMigration
                 try
                 {
                     Rollback(backup);
-                    _logService.Info("DataMigration", "已回滚迁移更改");
+                    _logService.Info(nameof(DataMigration), "已回滚迁移更改");
                 }
                 catch (Exception rollbackEx)
                 {
-                    _logService.Error("DataMigration", rollbackEx, "回滚失败");
+                    _logService.Error(nameof(DataMigration), rollbackEx, "回滚失败");
                 }
             }
 
@@ -556,7 +556,7 @@ public class DataMigration
         // 注意：这里只删除迁移过程中添加的，不删除之前就存在的
         // 由于我们无法精确知道哪些是新添加的，这里选择保守策略，不删除
 
-        _logService.Info("DataMigration", "迁移回滚完成");
+        _logService.Info(nameof(DataMigration), "迁移回滚完成");
     }
 
 #endregion

@@ -687,7 +687,7 @@ public class PluginHost : IPluginHost, IDisposable
     /// </summary>
     private void Log(string messageTemplate, params object?[] args)
     {
-        _logService.Info("PluginHost", messageTemplate, args);
+        _logService.Info(nameof(PluginHost), messageTemplate, args);
     }
 
     /// <summary>

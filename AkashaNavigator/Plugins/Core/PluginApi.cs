@@ -150,7 +150,7 @@ public class PluginApi
         _permissions =
             new HashSet<string>(_manifest.Permissions ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
 
-        Services.LogService.Instance.Debug("PluginApi", "Plugin {PluginId} permissions: [{Permissions}]",
+        Services.LogService.Instance.Debug(nameof(PluginApi), "Plugin {PluginId} permissions: [{Permissions}]",
                                            context.PluginId, string.Join(", ", _permissions));
         Services.LogService.Instance.Debug(
             "PluginApi", "HasPermission('overlay') = {HasOverlay}, HasPermission('audio') = {HasAudio}",
@@ -193,7 +193,7 @@ public class PluginApi
         Services.LogService.Instance.Debug(
             "PluginApi", "_subtitleApi is null = {SubtitleNull}, Subtitle property is null = {SubtitlePropNull}",
             _subtitleApi == null, Subtitle == null);
-        Services.LogService.Instance.Debug("PluginApi",
+        Services.LogService.Instance.Debug(nameof(PluginApi),
                                            "New APIs initialized: Player={HasPlayer}, Window={HasWindow}, " +
                                                "Storage={HasStorage}, Http={HasHttp}, Event={HasEvent}",
                                            Player != null, Window != null, Storage != null, Http != null,
@@ -269,12 +269,12 @@ public class PluginApi
         // 确保幂等性：如果已经清理过，直接返回
         if (_isCleanedUp)
         {
-            Services.LogService.Instance.Debug("PluginApi", "Plugin {PluginId} already cleaned up, skipping",
+            Services.LogService.Instance.Debug(nameof(PluginApi), "Plugin {PluginId} already cleaned up, skipping",
                                                _context.PluginId);
             return;
         }
 
-        Services.LogService.Instance.Debug("PluginApi", "Cleaning up plugin {PluginId}", _context.PluginId);
+        Services.LogService.Instance.Debug(nameof(PluginApi), "Cleaning up plugin {PluginId}", _context.PluginId);
 
         // 清理已初始化的子 API，使用 try-catch 确保一个 API 失败不影响其他 API 的清理
         // 只清理那些实际被初始化的 API（即不为 null 的 API）
@@ -288,7 +288,7 @@ public class PluginApi
         TryCleanupApi("EventManager", () => _eventManager.Clear());
 
         _isCleanedUp = true;
-        Services.LogService.Instance.Debug("PluginApi", "Plugin {PluginId} cleanup completed", _context.PluginId);
+        Services.LogService.Instance.Debug(nameof(PluginApi), "Plugin {PluginId} cleanup completed", _context.PluginId);
     }
 
     /// <summary>
@@ -301,11 +301,11 @@ public class PluginApi
         try
         {
             cleanupAction?.Invoke();
-            Services.LogService.Instance.Debug("PluginApi", "  - {ApiName} cleaned up successfully", apiName);
+            Services.LogService.Instance.Debug(nameof(PluginApi), "  - {ApiName} cleaned up successfully", apiName);
         }
         catch (Exception ex)
         {
-            Services.LogService.Instance.Error("PluginApi", "  - Failed to cleanup {ApiName}: {ErrorMessage}", apiName,
+            Services.LogService.Instance.Error(nameof(PluginApi), "  - Failed to cleanup {ApiName}: {ErrorMessage}", apiName,
                                                ex.Message);
             // 继续清理其他 API，不抛出异常
         }

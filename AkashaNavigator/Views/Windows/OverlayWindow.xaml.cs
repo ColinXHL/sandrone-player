@@ -277,11 +277,11 @@ public partial class OverlayWindow : Window
         {
             marker.Visibility = Visibility.Visible;
             _currentDirection = direction;
-            Services.LogService.Instance.Debug("OverlayWindow", "Marker {Direction} set to Visible", direction);
+            Services.LogService.Instance.Debug(nameof(OverlayWindow), "Marker {Direction} set to Visible", direction);
         }
         else
         {
-            Services.LogService.Instance.Warn("OverlayWindow", "Marker {Direction} not found in _markers dictionary",
+            Services.LogService.Instance.Warn(nameof(OverlayWindow), "Marker {Direction} not found in _markers dictionary",
                                               direction);
         }
 
@@ -435,7 +435,7 @@ public partial class OverlayWindow : Window
     {
         if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
         {
-            Services.LogService.Instance.Error("OverlayWindow", "SetMarkerImage: Image file not found: {ImagePath}",
+            Services.LogService.Instance.Error(nameof(OverlayWindow), "SetMarkerImage: Image file not found: {ImagePath}",
                                                imagePath);
             return false;
         }
@@ -457,13 +457,13 @@ public partial class OverlayWindow : Window
                 marker.Source = _markerImageSource;
             }
 
-            Services.LogService.Instance.Debug("OverlayWindow", "SetMarkerImage: loaded image from {ImagePath}",
+            Services.LogService.Instance.Debug(nameof(OverlayWindow), "SetMarkerImage: loaded image from {ImagePath}",
                                                imagePath);
             return true;
         }
         catch (Exception ex)
         {
-            Services.LogService.Instance.Error("OverlayWindow", ex, "SetMarkerImage failed");
+            Services.LogService.Instance.Error(nameof(OverlayWindow), ex, "SetMarkerImage failed");
             return false;
         }
     }
@@ -577,7 +577,7 @@ public partial class OverlayWindow : Window
     {
         if (string.IsNullOrEmpty(path) || !File.Exists(path))
         {
-            Services.LogService.Instance.Error("OverlayWindow", "DrawImage: Image file not found: {Path}", path);
+            Services.LogService.Instance.Error(nameof(OverlayWindow), "DrawImage: Image file not found: {Path}", path);
             return string.Empty;
         }
 
@@ -616,7 +616,7 @@ public partial class OverlayWindow : Window
         }
         catch (Exception ex)
         {
-            Services.LogService.Instance.Error("OverlayWindow", ex, "DrawImage failed");
+            Services.LogService.Instance.Error(nameof(OverlayWindow), ex, "DrawImage failed");
             return string.Empty;
         }
     }

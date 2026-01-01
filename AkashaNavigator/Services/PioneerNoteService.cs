@@ -619,7 +619,7 @@ public class PioneerNoteService : IPioneerNoteService
         }
         catch (Exception ex)
         {
-            _logService.Warn("PioneerNoteService", "加载笔记数据失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Warn(nameof(PioneerNoteService), "加载笔记数据失败 [{FilePath}]: {ErrorMessage}", filePath,
                                      ex.Message);
             _cache = new PioneerNoteData();
         }
@@ -637,13 +637,13 @@ public class PioneerNoteService : IPioneerNoteService
             var result = JsonHelper.SaveToFile(filePath, _cache);
             if (result.IsFailure)
             {
-                _logService.Debug("PioneerNoteService", "保存笔记数据失败 [{FilePath}]: {ErrorMessage}", filePath,
+                _logService.Debug(nameof(PioneerNoteService), "保存笔记数据失败 [{FilePath}]: {ErrorMessage}", filePath,
                                           result.Error?.Message ?? "Unknown error");
             }
         }
         catch (Exception ex)
         {
-            _logService.Debug("PioneerNoteService", "保存笔记数据失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Debug(nameof(PioneerNoteService), "保存笔记数据失败 [{FilePath}]: {ErrorMessage}", filePath,
                                       ex.Message);
         }
     }

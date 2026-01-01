@@ -233,7 +233,7 @@ public class ProfileRegistry : IProfileRegistry
 
         if (!File.Exists(RegistryFilePath))
         {
-            _logService.Warn("ProfileRegistry", "索引文件不存在: {RegistryFilePath}", RegistryFilePath);
+            _logService.Warn(nameof(ProfileRegistry), "索引文件不存在: {RegistryFilePath}", RegistryFilePath);
             return;
         }
 
@@ -243,12 +243,12 @@ public class ProfileRegistry : IProfileRegistry
             if (data.IsSuccess && data.Value?.Profiles != null)
             {
                 _profiles = data.Value.Profiles;
-                _logService.Debug("ProfileRegistry", "已加载 {ProfileCount} 个内置 Profile", _profiles.Count);
+                _logService.Debug(nameof(ProfileRegistry), "已加载 {ProfileCount} 个内置 Profile", _profiles.Count);
             }
         }
         catch (Exception ex)
         {
-            _logService.Error("ProfileRegistry", ex, "加载索引文件失败");
+            _logService.Error(nameof(ProfileRegistry), ex, "加载索引文件失败");
         }
     }
 

@@ -88,7 +88,7 @@ public class ConfigService : IConfigService
         }
 
         // 记录错误并返回默认配置
-        _logService.Warn("ConfigService", "加载配置失败，将使用默认配置: {ErrorMessage}",
+        _logService.Warn(nameof(ConfigService), "加载配置失败，将使用默认配置: {ErrorMessage}",
             result.Error?.Message ?? "未知错误");
         return new AppConfig();
     }
@@ -102,7 +102,7 @@ public class ConfigService : IConfigService
 
         if (result.IsFailure)
         {
-            _logService.Debug("ConfigService", "保存配置失败: {ErrorMessage}",
+            _logService.Debug(nameof(ConfigService), "保存配置失败: {ErrorMessage}",
                 result.Error?.Message ?? "未知错误");
         }
     }

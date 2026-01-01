@@ -67,7 +67,7 @@ public class ConfigApi
         }
         catch (Exception ex)
         {
-            Services.LogService.Instance.Error("ConfigApi", "Get({Key}) failed: {ErrorMessage}", key, ex.Message);
+            Services.LogService.Instance.Error(nameof(ConfigApi), "Get({Key}) failed: {ErrorMessage}", key, ex.Message);
             return defaultValue;
         }
     }
@@ -180,7 +180,7 @@ public class ConfigApi
     {
         if (_eventManager == null)
         {
-            Services.LogService.Instance.Warn("ConfigApi", "EventManager not available, cannot register listener");
+            Services.LogService.Instance.Warn(nameof(ConfigApi), "EventManager not available, cannot register listener");
             return -1;
         }
 

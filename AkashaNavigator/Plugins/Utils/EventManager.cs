@@ -77,13 +77,13 @@ public class EventManager
     {
         if (string.IsNullOrWhiteSpace(eventName))
         {
-            Services.LogService.Instance.Warn("EventManager", "On() called with empty event name");
+            Services.LogService.Instance.Warn(nameof(EventManager), "On() called with empty event name");
             return -1;
         }
 
         if (callback == null)
         {
-            Services.LogService.Instance.Warn("EventManager", "On() called with null callback for event '{EventName}'",
+            Services.LogService.Instance.Warn(nameof(EventManager), "On() called with null callback for event '{EventName}'",
                                               eventName);
             return -1;
         }
@@ -178,7 +178,7 @@ public class EventManager
                 // 清空该事件的所有监听器
                 eventListeners.Clear();
 
-                Services.LogService.Instance.Debug("EventManager", "Removed all listeners for event '{EventName}'",
+                Services.LogService.Instance.Debug(nameof(EventManager), "Removed all listeners for event '{EventName}'",
                                                    eventName);
             }
         }
@@ -239,7 +239,7 @@ public class EventManager
             catch (Exception ex)
             {
                 // 记录错误但继续调用其他回调
-                Services.LogService.Instance.Error("EventManager",
+                Services.LogService.Instance.Error(nameof(EventManager),
                                                    "Callback for event '{EventName}' (subscription ID " +
                                                        "{SubscriptionId}) threw exception: {ErrorMessage}",
                                                    eventName, kvp.Key, ex.Message);
@@ -266,7 +266,7 @@ public class EventManager
         {
             _listeners.Clear();
             _subscriptionToEvent.Clear();
-            Services.LogService.Instance.Debug("EventManager", "Cleared all listeners");
+            Services.LogService.Instance.Debug(nameof(EventManager), "Cleared all listeners");
         }
     }
 

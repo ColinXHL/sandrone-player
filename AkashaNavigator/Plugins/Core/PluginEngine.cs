@@ -144,7 +144,7 @@ public static class PluginEngine
         // 设置搜索路径
         engine.DocumentSettings.SearchPath = string.Join(";", searchPaths);
 
-        LogService.Instance.Debug("PluginEngine", "Module search paths: {SearchPath}",
+        LogService.Instance.Debug(nameof(PluginEngine), "Module search paths: {SearchPath}",
                                   engine.DocumentSettings.SearchPath);
     }
 
@@ -293,7 +293,7 @@ public static class PluginEngine
         // 使用委托包装，使其可以直接作为全局函数调用
         engine.AddHostObject("sleep", new Func<int, Task>(GlobalFunctions.Sleep));
 
-        LogService.Instance.Debug("PluginEngine", "Global functions exposed: sleep");
+        LogService.Instance.Debug(nameof(PluginEngine), "Global functions exposed: sleep");
     }
 
 #endregion

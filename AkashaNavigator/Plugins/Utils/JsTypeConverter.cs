@@ -168,7 +168,7 @@ public static class JsTypeConverter
         }
         catch (Exception ex)
         {
-            Services.LogService.Instance.Warn("JsTypeConverter", "FromJs<{TypeName}> failed: {ErrorMessage}",
+            Services.LogService.Instance.Warn(nameof(JsTypeConverter), "FromJs<{TypeName}> failed: {ErrorMessage}",
                                               typeof(T).Name, ex.Message);
             return default;
         }

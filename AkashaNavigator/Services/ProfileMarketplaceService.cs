@@ -484,7 +484,7 @@ public class ProfileMarketplaceService
             }
             catch (Exception ex)
             {
-                _logService.Warn("ProfileMarketplaceService", "获取订阅源 '{SourceUrl}' 失败: {ErrorMessage}",
+                _logService.Warn(nameof(ProfileMarketplaceService), "获取订阅源 '{SourceUrl}' 失败: {ErrorMessage}",
                                          source.Url, ex.Message);
             }
         }
@@ -514,7 +514,7 @@ public class ProfileMarketplaceService
 
         if (!File.Exists(registryPath))
         {
-            _logService.Debug("ProfileMarketplaceService", "内置 Profile 市场注册表不存在: {RegistryPath}",
+            _logService.Debug(nameof(ProfileMarketplaceService), "内置 Profile 市场注册表不存在: {RegistryPath}",
                                       registryPath);
             return profiles;
         }
@@ -534,13 +534,13 @@ public class ProfileMarketplaceService
                     profiles.Add(profile);
                 }
 
-                _logService.Info("ProfileMarketplaceService", "加载了 {ProfileCount} 个内置 Profile",
+                _logService.Info(nameof(ProfileMarketplaceService), "加载了 {ProfileCount} 个内置 Profile",
                                          profiles.Count);
             }
         }
         catch (Exception ex)
         {
-            _logService.Warn("ProfileMarketplaceService", "加载内置 Profile 市场失败: {ErrorMessage}",
+            _logService.Warn(nameof(ProfileMarketplaceService), "加载内置 Profile 市场失败: {ErrorMessage}",
                                      ex.Message);
         }
 
@@ -562,7 +562,7 @@ public class ProfileMarketplaceService
 
         if (!File.Exists(profilePath))
         {
-            _logService.Debug("ProfileMarketplaceService", "内置 Profile 配置不存在: {ProfilePath}",
+            _logService.Debug(nameof(ProfileMarketplaceService), "内置 Profile 配置不存在: {ProfilePath}",
                                       profilePath);
             return null;
         }
@@ -606,7 +606,7 @@ public class ProfileMarketplaceService
         }
         catch (Exception ex)
         {
-            _logService.Warn("ProfileMarketplaceService", "加载内置 Profile 配置失败: {ErrorMessage}",
+            _logService.Warn(nameof(ProfileMarketplaceService), "加载内置 Profile 配置失败: {ErrorMessage}",
                                      ex.Message);
             return null;
         }
@@ -801,14 +801,14 @@ public class ProfileMarketplaceService
                 else
                 {
                     failedPlugins.Add(pluginId);
-                    _logService.Warn("ProfileMarketplaceService", "卸载插件 '{PluginId}' 失败: {ErrorMessage}",
+                    _logService.Warn(nameof(ProfileMarketplaceService), "卸载插件 '{PluginId}' 失败: {ErrorMessage}",
                                              pluginId, uninstallResult.ErrorMessage);
                 }
             }
             catch (Exception ex)
             {
                 failedPlugins.Add(pluginId);
-                _logService.Error("ProfileMarketplaceService",
+                _logService.Error(nameof(ProfileMarketplaceService),
                                           "卸载插件 '{PluginId}' 时发生异常: {ErrorMessage}", pluginId, ex.Message);
             }
         }
@@ -906,7 +906,7 @@ public class ProfileMarketplaceService
             }
             catch (Exception ex)
             {
-                _logService.Warn("ProfileMarketplaceService", "下载 Profile 配置失败: {ErrorMessage}",
+                _logService.Warn(nameof(ProfileMarketplaceService), "下载 Profile 配置失败: {ErrorMessage}",
                                          ex.Message);
             }
         }

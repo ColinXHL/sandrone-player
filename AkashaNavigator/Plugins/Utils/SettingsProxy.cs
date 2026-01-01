@@ -183,7 +183,7 @@ public class SettingsProxy : DynamicObject
         }
         catch (Exception ex)
         {
-            LogService.Instance.Error("SettingsProxy", "GetValue({Key}) failed: {ErrorMessage}", key, ex.Message);
+            LogService.Instance.Error(nameof(SettingsProxy), "GetValue({Key}) failed: {ErrorMessage}", key, ex.Message);
             return null;
         }
     }
@@ -200,7 +200,7 @@ public class SettingsProxy : DynamicObject
         }
         catch (Exception ex)
         {
-            LogService.Instance.Error("SettingsProxy", "SetValue({Key}) failed: {ErrorMessage}", key, ex.Message);
+            LogService.Instance.Error(nameof(SettingsProxy), "SetValue({Key}) failed: {ErrorMessage}", key, ex.Message);
         }
     }
 

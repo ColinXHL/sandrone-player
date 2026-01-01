@@ -411,7 +411,7 @@ public class PluginAssociationManager : IPluginAssociationManager
             // 如果 Profile 配置已存在，不覆盖
             if (File.Exists(profileConfigPath))
             {
-                _logService.Debug("PluginAssociationManager",
+                _logService.Debug(nameof(PluginAssociationManager),
                                           $"Profile 配置已存在，跳过复制: {profileConfigPath}");
                 return;
             }
@@ -423,18 +423,18 @@ public class PluginAssociationManager : IPluginAssociationManager
             if (File.Exists(globalConfigPath))
             {
                 File.Copy(globalConfigPath, profileConfigPath);
-                _logService.Debug("PluginAssociationManager",
+                _logService.Debug(nameof(PluginAssociationManager),
                                           $"已复制全局配置到 Profile: {globalConfigPath} -> {profileConfigPath}");
             }
             else
             {
-                _logService.Debug("PluginAssociationManager",
+                _logService.Debug(nameof(PluginAssociationManager),
                                           "全局配置不存在，将使用默认配置: {GlobalConfigPath}", globalConfigPath);
             }
         }
         catch (Exception ex)
         {
-            _logService.Error("PluginAssociationManager", ex, "复制全局配置失败");
+            _logService.Error(nameof(PluginAssociationManager), ex, "复制全局配置失败");
         }
     }
 

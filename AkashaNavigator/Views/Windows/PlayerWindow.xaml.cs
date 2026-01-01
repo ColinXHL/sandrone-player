@@ -737,7 +737,7 @@ public partial class PlayerWindow : Window
         _videoTimeSyncTimer.Tick += VideoTimeSyncTimer_Tick;
         _videoTimeSyncTimer.Start();
 
-        _logService.Debug("PlayerWindow", "视频时间同步已启动");
+        _logService.Debug(nameof(PlayerWindow), "视频时间同步已启动");
     }
 
     /// <summary>
@@ -751,7 +751,7 @@ public partial class PlayerWindow : Window
             _videoTimeSyncTimer.Tick -= VideoTimeSyncTimer_Tick;
             _videoTimeSyncTimer = null;
 
-            _logService.Debug("PlayerWindow", "视频时间同步已停止");
+            _logService.Debug(nameof(PlayerWindow), "视频时间同步已停止");
         }
     }
 

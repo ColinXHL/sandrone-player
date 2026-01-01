@@ -288,7 +288,7 @@ public class DataService : IDataService
         }
         catch (Exception ex)
         {
-            _logService.Warn("DataService", "加载历史记录失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Warn(nameof(DataService), "加载历史记录失败 [{FilePath}]: {ErrorMessage}", filePath,
                                      ex.Message);
             _historyCache = new List<HistoryItem>();
         }
@@ -308,7 +308,7 @@ public class DataService : IDataService
         }
         catch (Exception ex)
         {
-            _logService.Warn("DataService", "加载收藏夹失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Warn(nameof(DataService), "加载收藏夹失败 [{FilePath}]: {ErrorMessage}", filePath,
                                      ex.Message);
             _bookmarkCache = new List<BookmarkItem>();
         }
@@ -324,7 +324,7 @@ public class DataService : IDataService
         }
         catch (Exception ex)
         {
-            _logService.Debug("DataService", "保存历史记录失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Debug(nameof(DataService), "保存历史记录失败 [{FilePath}]: {ErrorMessage}", filePath,
                                       ex.Message);
         }
     }
@@ -338,7 +338,7 @@ public class DataService : IDataService
         }
         catch (Exception ex)
         {
-            _logService.Debug("DataService", "保存收藏夹失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Debug(nameof(DataService), "保存收藏夹失败 [{FilePath}]: {ErrorMessage}", filePath,
                                       ex.Message);
         }
     }

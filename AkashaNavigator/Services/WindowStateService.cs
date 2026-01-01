@@ -75,7 +75,7 @@ public class WindowStateService : IWindowStateService
         }
         else
         {
-            _logService.Warn("WindowStateService", "加载窗口状态失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Warn(nameof(WindowStateService), "加载窗口状态失败 [{FilePath}]: {ErrorMessage}", filePath,
                                      result.Error?.Message ?? "未知错误");
             _cachedState = null;
         }
@@ -101,7 +101,7 @@ public class WindowStateService : IWindowStateService
 
         if (result.IsFailure)
         {
-            _logService.Debug("WindowStateService", "保存窗口状态失败 [{FilePath}]: {ErrorMessage}", filePath,
+            _logService.Debug(nameof(WindowStateService), "保存窗口状态失败 [{FilePath}]: {ErrorMessage}", filePath,
                                       result.Error?.Message ?? "未知错误");
         }
     }

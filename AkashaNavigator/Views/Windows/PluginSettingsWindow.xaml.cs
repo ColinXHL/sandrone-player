@@ -320,7 +320,7 @@ public partial class PluginSettingsWindow : AnimatedWindow
         }
         catch (Exception ex)
         {
-            _logService.Error("PluginSettingsWindow", ex, "打开插件目录失败");
+            _logService.Error(nameof(PluginSettingsWindow), ex, "打开插件目录失败");
         }
     }
 
@@ -410,7 +410,7 @@ public partial class PluginSettingsWindow : AnimatedWindow
         }
         catch (Exception ex)
         {
-            _logService.Error("PluginSettingsWindow", ex, "保存配置失败");
+            _logService.Error(nameof(PluginSettingsWindow), ex, "保存配置失败");
         }
     }
 
@@ -426,7 +426,7 @@ public partial class PluginSettingsWindow : AnimatedWindow
         }
         catch (Exception ex)
         {
-            _logService.Error("PluginSettingsWindow", ex, "通知插件配置变更失败");
+            _logService.Error(nameof(PluginSettingsWindow), ex, "通知插件配置变更失败");
         }
     }
 
@@ -442,7 +442,7 @@ public partial class PluginSettingsWindow : AnimatedWindow
         }
         catch (Exception ex)
         {
-            _logService.Error("PluginSettingsWindow", ex, "通知插件动作失败");
+            _logService.Error(nameof(PluginSettingsWindow), ex, "通知插件动作失败");
         }
     }
 
@@ -492,7 +492,7 @@ public partial class PluginSettingsWindow : AnimatedWindow
         var currentProfileId = _profileManager.CurrentProfile?.Id;
 
         // 调试日志
-        _logService.Debug("PluginSettingsWindow",
+        _logService.Debug(nameof(PluginSettingsWindow),
                                   "保存配置 - pluginId={PluginId}, _profileId={ProfileId}, " +
                                       "currentProfileId={CurrentProfileId}, configDirectory={ConfigDirectory}",
                                   _pluginId, _profileId ?? "null", currentProfileId ?? "null", _configDirectory);
@@ -500,7 +500,7 @@ public partial class PluginSettingsWindow : AnimatedWindow
         var needsReload = !string.IsNullOrEmpty(_profileId) && !string.IsNullOrEmpty(currentProfileId) &&
                           string.Equals(_profileId, currentProfileId, StringComparison.OrdinalIgnoreCase);
 
-        _logService.Debug("PluginSettingsWindow", "needsReload={NeedsReload}", needsReload);
+        _logService.Debug(nameof(PluginSettingsWindow), "needsReload={NeedsReload}", needsReload);
 
         if (needsReload)
         {
