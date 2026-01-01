@@ -13,10 +13,10 @@ namespace AkashaNavigator.Views.Windows
 /// </summary>
 public partial class PluginCenterWindow : AnimatedWindow
 {
-    private MyProfilesPage? _myProfilesPage;
-    private ProfileMarketPage? _profileMarketPage;
-    private InstalledPluginsPage? _installedPluginsPage;
-    private AvailablePluginsPage? _availablePluginsPage;
+    private MyProfilesPage _myProfilesPage = null!;
+    private ProfileMarketPage _profileMarketPage = null!;
+    private InstalledPluginsPage _installedPluginsPage = null!;
+    private AvailablePluginsPage _availablePluginsPage = null!;
 
     public PluginCenterWindow()
     {
@@ -52,10 +52,10 @@ public partial class PluginCenterWindow : AnimatedWindow
     /// </summary>
     private void ShowMyProfiles()
     {
-        _myProfilesPage!.Visibility = Visibility.Visible;
-        _profileMarketPage!.Visibility = Visibility.Collapsed;
-        _installedPluginsPage!.Visibility = Visibility.Collapsed;
-        _availablePluginsPage!.Visibility = Visibility.Collapsed;
+        _myProfilesPage.Visibility = Visibility.Visible;
+        _profileMarketPage.Visibility = Visibility.Collapsed;
+        _installedPluginsPage.Visibility = Visibility.Collapsed;
+        _availablePluginsPage.Visibility = Visibility.Collapsed;
     }
 
     /// <summary>

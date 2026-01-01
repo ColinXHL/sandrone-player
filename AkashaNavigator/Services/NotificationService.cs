@@ -44,10 +44,6 @@ public class NotificationService : INotificationService
 
 #region Constructor
 
-    private NotificationService()
-    {
-    }
-
     /// <summary>
     /// DI 容器使用的构造函数
     /// </summary>

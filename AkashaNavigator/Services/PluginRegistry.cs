@@ -142,12 +142,6 @@ public class PluginRegistry : IPluginRegistry
 
 #region Constructor
 
-    public PluginRegistry()
-    {
-        _logService = _logService;
-        BuiltInPluginsDirectory = AppPaths.BuiltInPluginsDirectory;
-    }
-
     /// <summary>
     /// DI容器使用的构造函数
     /// </summary>
@@ -163,7 +157,7 @@ public class PluginRegistry : IPluginRegistry
     /// <param name="builtInPluginsDirectory">内置插件目录路径</param>
     internal PluginRegistry(string builtInPluginsDirectory)
     {
-        _logService = _logService;
+        _logService = LogService.Instance;
         BuiltInPluginsDirectory = builtInPluginsDirectory;
     }
 

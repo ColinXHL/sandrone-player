@@ -230,8 +230,9 @@ public partial class App : System.Windows.Application
     {
         var pluginLibrary = Services.GetRequiredService<PluginLibrary>();
         var notificationService = Services.GetRequiredService<INotificationService>();
+        var eventBus = Services.GetRequiredService<Core.Events.IEventBus>();
 
-        var checker = new PluginUpdateChecker(pluginLibrary, notificationService, Services, playerWindow, _config);
+        var checker = new PluginUpdateChecker(pluginLibrary, notificationService, Services, eventBus, playerWindow, _config);
         checker.SetupUpdateCheck();
     }
 

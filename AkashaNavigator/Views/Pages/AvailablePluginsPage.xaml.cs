@@ -79,7 +79,7 @@ public partial class AvailablePluginsPage : UserControl
                 continue;
 
             var manifest = JsonHelper.LoadFromFile<PluginManifest>(manifestPath);
-            if (manifest.IsFailure || string.IsNullOrEmpty(manifest.Value.Id))
+            if (manifest.IsFailure || string.IsNullOrEmpty(manifest.Value!.Id))
                 continue;
 
             var isInstalled = installedIds.Contains(manifest.Value.Id);

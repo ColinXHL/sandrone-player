@@ -1154,7 +1154,7 @@ public class ProfileManager : IProfileManager
                 var config = JsonHelper.LoadFromFile<Dictionary<string, object>>(file);
                 if (config.IsSuccess)
                 {
-                    result[pluginId] = config.Value;
+                    result[pluginId] = config.Value!;
                 }
             }
         }
@@ -1207,7 +1207,7 @@ public class ProfileManager : IProfileManager
                 var profile = JsonHelper.LoadFromFile<GameProfile>(profilePath);
                 if (profile.IsSuccess)
                 {
-                    Profiles.Add(profile.Value);
+                    Profiles.Add(profile.Value!);
                     _logService.Debug(nameof(ProfileManager), "已加载订阅的 Profile: {ProfileId}", profileId);
                 }
             }
@@ -1308,7 +1308,7 @@ public class ProfileManager : IProfileManager
                 if (profile.IsSuccess)
                 {
                     _logService.Info(nameof(ProfileManager), "已从内置模板创建默认 Profile");
-                    return profile.Value;
+                    return profile.Value!;
                 }
             }
             catch (Exception ex)

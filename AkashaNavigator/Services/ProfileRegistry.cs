@@ -125,12 +125,6 @@ public class ProfileRegistry : IProfileRegistry
 
 #region Constructor
 
-    public ProfileRegistry()
-    {
-        _logService = _logService;
-        BuiltInProfilesDirectory = AppPaths.BuiltInProfilesDirectory;
-    }
-
     /// <summary>
     /// DI容器使用的构造函数
     /// </summary>
@@ -146,7 +140,7 @@ public class ProfileRegistry : IProfileRegistry
     /// <param name="builtInProfilesDirectory">内置 Profile 目录路径</param>
     internal ProfileRegistry(string builtInProfilesDirectory)
     {
-        _logService = _logService;
+        _logService = LogService.Instance;
         BuiltInProfilesDirectory = builtInProfilesDirectory;
     }
 

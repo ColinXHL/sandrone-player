@@ -117,10 +117,11 @@ public class PluginHost : IPluginHost, IDisposable
     /// <summary>
     /// 用于测试的内部构造函数
     /// </summary>
-    internal PluginHost(bool forTesting, ILogService logService, IPluginAssociationManager pluginAssociationManager)
+    internal PluginHost(bool forTesting, ILogService logService, IPluginAssociationManager pluginAssociationManager, IPluginLibrary? pluginLibrary = null)
     {
-        _logService = logService;
-        _pluginAssociationManager = pluginAssociationManager;
+        _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _pluginAssociationManager = pluginAssociationManager ?? throw new ArgumentNullException(nameof(pluginAssociationManager));
+        _pluginLibrary = pluginLibrary ?? PluginLibrary.Instance;
         // 测试用构造函数，不订阅事件
     }
 

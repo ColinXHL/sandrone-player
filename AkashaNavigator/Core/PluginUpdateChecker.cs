@@ -5,6 +5,8 @@ using AkashaNavigator.Models.Config;
 using AkashaNavigator.Models.Common;
 using AkashaNavigator.Services;
 using AkashaNavigator.Core.Interfaces;
+using AkashaNavigator.Core.Events;
+using AkashaNavigator.Core.Events.Events;
 using AkashaNavigator.Views.Windows;
 using AkashaNavigator.Views.Dialogs;
 
@@ -19,6 +21,7 @@ namespace AkashaNavigator.Core
         private readonly PluginLibrary _pluginLibrary;
         private readonly INotificationService _notificationService;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IEventBus _eventBus;
         private readonly PlayerWindow _playerWindow;
         private readonly AppConfig _config;
 
@@ -29,12 +32,14 @@ namespace AkashaNavigator.Core
             PluginLibrary pluginLibrary,
             INotificationService notificationService,
             IServiceProvider serviceProvider,
+            IEventBus eventBus,
             PlayerWindow playerWindow,
             AppConfig config)
         {
             _pluginLibrary = pluginLibrary;
             _notificationService = notificationService;
             _serviceProvider = serviceProvider;
+            _eventBus = eventBus;
             _playerWindow = playerWindow;
             _config = config;
         }
@@ -47,17 +52,20 @@ namespace AkashaNavigator.Core
         {
             if (!_config.IsFirstLaunch && _config.EnablePluginUpdateNotification)
             {
-                // 使用一次性事件处理器
-                EventHandler? handler = null;
-                handler = (s, e) =>
+                // 使用一次性事件处理器订阅 EventBus
+                Action<NavigationStateChangedEvent>? handler = null;
+                handler = e =>
                 {
-                    _playerWindow.NavigationStateChanged -= handler;
+                    if (handler != null)
+                    {
+                        _eventBus.Unsubscribe(handler);
+                    }
                     // 延迟一小段时间再显示，确保窗口完全加载
                     _playerWindow.Dispatcher.BeginInvoke(
                         new Action(CheckAndPromptPluginUpdates),
                         System.Windows.Threading.DispatcherPriority.Background);
                 };
-                _playerWindow.NavigationStateChanged += handler;
+                _eventBus.Subscribe(handler);
             }
         }
 

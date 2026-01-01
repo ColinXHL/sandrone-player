@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using AkashaNavigator.Helpers;
+using AkashaNavigator.Core.Events;
+using AkashaNavigator.Core.Events.Events;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 
@@ -94,6 +96,7 @@ public partial class ControlBarWindow : Window
 #region Fields
 
     private readonly PlayerWindow _playerWindow;
+    private readonly IEventBus _eventBus;
 
     /// <summary>
     /// 是否正在拖动
@@ -139,9 +142,10 @@ public partial class ControlBarWindow : Window
 
 #region Constructor
 
-    public ControlBarWindow(PlayerWindow playerWindow)
+    public ControlBarWindow(PlayerWindow playerWindow, IEventBus eventBus)
     {
         _playerWindow = playerWindow ?? throw new ArgumentNullException(nameof(playerWindow));
+        _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
 
         InitializeComponent();
         InitializeWindowPosition();
@@ -165,6 +169,61 @@ public partial class ControlBarWindow : Window
 
         // 窗口关闭时停止定时器
         Closing += (s, e) => StopAutoShowHide();
+
+        // 订阅 EventBus 事件
+        SubscribeToEvents();
+    }
+
+    /// <summary>
+    /// 订阅 EventBus 事件
+    /// </summary>
+    private void SubscribeToEvents()
+    {
+        // 订阅 URL 变化事件
+        _eventBus.Subscribe<UrlChangedEvent>(OnUrlChanged);
+
+        // 订阅导航状态变化事件
+        _eventBus.Subscribe<NavigationStateChangedEvent>(OnNavigationStateChanged);
+
+        // 订阅收藏状态变化事件
+        _eventBus.Subscribe<BookmarkStateChangedEvent>(OnBookmarkStateChanged);
+    }
+
+    /// <summary>
+    /// 处理 URL 变化事件
+    /// </summary>
+    private void OnUrlChanged(UrlChangedEvent e)
+    {
+        // 在 UI 线程执行
+        Dispatcher.BeginInvoke(() =>
+        {
+            CurrentUrl = e.Url;
+        });
+    }
+
+    /// <summary>
+    /// 处理导航状态变化事件
+    /// </summary>
+    private void OnNavigationStateChanged(NavigationStateChangedEvent e)
+    {
+        // 在 UI 线程执行
+        Dispatcher.BeginInvoke(() =>
+        {
+            UpdateBackButtonState(e.CanGoBack);
+            UpdateForwardButtonState(e.CanGoForward);
+        });
+    }
+
+    /// <summary>
+    /// 处理收藏状态变化事件
+    /// </summary>
+    private void OnBookmarkStateChanged(BookmarkStateChangedEvent e)
+    {
+        // 在 UI 线程执行
+        Dispatcher.BeginInvoke(() =>
+        {
+            UpdateBookmarkState(e.IsBookmarked);
+        });
     }
 
 #endregion
@@ -350,6 +409,10 @@ public partial class ControlBarWindow : Window
                 url = "https://" + url;
             }
 
+            // 发布 EventBus 事件
+            _eventBus.Publish(new NavigationRequestedEvent { Url = url });
+
+            // 保留 C# 事件以保持向后兼容
             NavigateRequested?.Invoke(this, url);
         }
 
@@ -362,6 +425,8 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void BtnBack_Click(object sender, RoutedEventArgs e)
     {
+        // 发布 EventBus 事件
+        _eventBus.Publish(new NavigationControlEvent { Action = NavigationControlAction.Back });
         BackRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -370,6 +435,8 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void BtnForward_Click(object sender, RoutedEventArgs e)
     {
+        // 发布 EventBus 事件
+        _eventBus.Publish(new NavigationControlEvent { Action = NavigationControlAction.Forward });
         ForwardRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -378,6 +445,8 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void BtnRefresh_Click(object sender, RoutedEventArgs e)
     {
+        // 发布 EventBus 事件
+        _eventBus.Publish(new NavigationControlEvent { Action = NavigationControlAction.Refresh });
         RefreshRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -386,6 +455,12 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void BtnBookmark_Click(object sender, RoutedEventArgs e)
     {
+        // 发布 EventBus 事件
+        _eventBus.Publish(new BookmarkRequestedEvent
+        {
+            Url = CurrentUrl,
+            Title = _playerWindow.CurrentTitle
+        });
         BookmarkRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -394,6 +469,12 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void BtnRecordNote_Click(object sender, RoutedEventArgs e)
     {
+        // 发布 EventBus 事件
+        _eventBus.Publish(new RecordNoteRequestedEvent
+        {
+            Url = CurrentUrl,
+            Title = _playerWindow.CurrentTitle
+        });
         RecordNoteRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -409,6 +490,7 @@ public partial class ControlBarWindow : Window
             BtnMenu.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
             BtnMenu.ContextMenu.IsOpen = true;
         }
+        _eventBus.Publish(new MenuRequestedEvent { MenuType = MenuType.History });
         MenuRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -417,6 +499,7 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void MenuHistory_Click(object sender, RoutedEventArgs e)
     {
+        _eventBus.Publish(new HistoryRequestedEvent());
         HistoryRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -425,6 +508,7 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void MenuBookmarks_Click(object sender, RoutedEventArgs e)
     {
+        _eventBus.Publish(new BookmarksRequestedEvent());
         BookmarksRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -433,6 +517,7 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void MenuPioneerNotes_Click(object sender, RoutedEventArgs e)
     {
+        _eventBus.Publish(new PioneerNotesRequestedEvent());
         PioneerNotesRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -441,6 +526,7 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void MenuPluginCenter_Click(object sender, RoutedEventArgs e)
     {
+        _eventBus.Publish(new PluginCenterRequestedEvent());
         PluginCenterRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -449,6 +535,7 @@ public partial class ControlBarWindow : Window
     /// </summary>
     private void MenuSettings_Click(object sender, RoutedEventArgs e)
     {
+        _eventBus.Publish(new SettingsRequestedEvent());
         SettingsRequested?.Invoke(this, EventArgs.Empty);
     }
 

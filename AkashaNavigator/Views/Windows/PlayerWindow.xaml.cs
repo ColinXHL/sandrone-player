@@ -7,6 +7,8 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using AkashaNavigator.Core.Interfaces;
+using AkashaNavigator.Core.Events;
+using AkashaNavigator.Core.Events.Events;
 using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Config;
 using AkashaNavigator.Models.Profile;
@@ -23,20 +25,6 @@ namespace AkashaNavigator.Views.Windows
 /// </summary>
 public partial class PlayerWindow : Window
 {
-#region Events
-
-    /// <summary>
-    /// URL 变化事件
-    /// </summary>
-    public event EventHandler<string>? UrlChanged;
-
-    /// <summary>
-    /// 导航状态变化事件
-    /// </summary>
-    public event EventHandler? NavigationStateChanged;
-
-#endregion
-
 #region Fields
 
     // DI注入的服务
@@ -48,6 +36,7 @@ public partial class PlayerWindow : Window
     private readonly IPluginHost _pluginHost;
     private readonly ILogService _logService;
     private readonly ICursorDetectionService _cursorDetectionService;
+    private readonly IEventBus _eventBus;
 
     /// <summary>
     /// 是否最大化
@@ -101,7 +90,8 @@ public partial class PlayerWindow : Window
         IDataService dataService,
         IPluginHost pluginHost,
         ILogService logService,
-        ICursorDetectionService cursorDetectionService)
+        ICursorDetectionService cursorDetectionService,
+        IEventBus eventBus)
     {
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
         _profileManager = profileManager ?? throw new ArgumentNullException(nameof(profileManager));
@@ -111,6 +101,7 @@ public partial class PlayerWindow : Window
         _pluginHost = pluginHost ?? throw new ArgumentNullException(nameof(pluginHost));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
         _cursorDetectionService = cursorDetectionService ?? throw new ArgumentNullException(nameof(cursorDetectionService));
+        _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
 
         InitializeComponent();
         _config = _configService.Config;
@@ -130,6 +121,93 @@ public partial class PlayerWindow : Window
         // 窗口关闭后退出应用
         Closed += (s, e) =>
         { System.Windows.Application.Current.Shutdown(); };
+
+        // 订阅 EventBus 事件
+        SubscribeToEvents();
+    }
+
+    /// <summary>
+    /// 订阅 EventBus 事件
+    /// </summary>
+    private void SubscribeToEvents()
+    {
+        // 订阅导航请求事件
+        _eventBus.Subscribe<NavigationRequestedEvent>(OnNavigationRequested);
+
+        // 订阅导航控制事件（后退、前进、刷新）
+        _eventBus.Subscribe<NavigationControlEvent>(OnNavigationControl);
+
+        // 订阅历史记录项选中事件
+        _eventBus.Subscribe<HistoryItemSelectedEvent>(OnHistoryItemSelected);
+
+        // 订阅收藏夹项选中事件
+        _eventBus.Subscribe<BookmarkItemSelectedEvent>(OnBookmarkItemSelected);
+
+        // 订阅开荒笔记项选中事件
+        _eventBus.Subscribe<PioneerNoteItemSelectedEvent>(OnPioneerNoteItemSelected);
+    }
+
+    /// <summary>
+    /// 处理导航请求事件
+    /// </summary>
+    private void OnNavigationRequested(NavigationRequestedEvent e)
+    {
+        if (!string.IsNullOrEmpty(e.Url))
+        {
+            Navigate(e.Url);
+        }
+    }
+
+    /// <summary>
+    /// 处理导航控制事件
+    /// </summary>
+    private void OnNavigationControl(NavigationControlEvent e)
+    {
+        switch (e.Action)
+        {
+        case NavigationControlAction.Back:
+            GoBack();
+            break;
+        case NavigationControlAction.Forward:
+            GoForward();
+            break;
+        case NavigationControlAction.Refresh:
+            Refresh();
+            break;
+        }
+    }
+
+    /// <summary>
+    /// 处理历史记录项选中事件
+    /// </summary>
+    private void OnHistoryItemSelected(HistoryItemSelectedEvent e)
+    {
+        if (!string.IsNullOrEmpty(e.Url))
+        {
+            Navigate(e.Url);
+        }
+    }
+
+    /// <summary>
+    /// 处理收藏夹项选中事件
+    /// </summary>
+    private void OnBookmarkItemSelected(BookmarkItemSelectedEvent e)
+    {
+        if (!string.IsNullOrEmpty(e.Url))
+        {
+            Navigate(e.Url);
+        }
+    }
+
+    /// <summary>
+    /// 处理开荒笔记项选中事件
+    /// </summary>
+    private void OnPioneerNoteItemSelected(PioneerNoteItemSelectedEvent e)
+    {
+        if (!string.IsNullOrEmpty(e.Url))
+        {
+            Navigate(e.Url);
+        }
     }
 
 #endregion
@@ -329,8 +407,12 @@ public partial class PlayerWindow : Window
     /// </summary>
     private void CoreWebView2_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
     {
-        // 触发导航状态变化事件
-        NavigationStateChanged?.Invoke(this, EventArgs.Empty);
+        // 发布导航状态变化事件
+        _eventBus.Publish(new NavigationStateChangedEvent
+        {
+            CanGoBack = CanGoBack,
+            CanGoForward = CanGoForward
+        });
 
         // 记录到历史（仅成功的导航）
         if (e.IsSuccess && WebView.CoreWebView2 != null)
@@ -355,12 +437,17 @@ public partial class PlayerWindow : Window
     private string _lastSubtitleUrl = string.Empty;
     private void CoreWebView2_SourceChanged(object? sender, CoreWebView2SourceChangedEventArgs e)
     {
-        // 触发 URL 变化事件
         var currentUrl = WebView.CoreWebView2?.Source ?? string.Empty;
-        UrlChanged?.Invoke(this, currentUrl);
 
-        // 触发导航状态变化事件
-        NavigationStateChanged?.Invoke(this, EventArgs.Empty);
+        // 发布 URL 变化事件
+        _eventBus.Publish(new UrlChangedEvent { Url = currentUrl });
+
+        // 发布导航状态变化事件
+        _eventBus.Publish(new NavigationStateChangedEvent
+        {
+            CanGoBack = CanGoBack,
+            CanGoForward = CanGoForward
+        });
 
         // 广播 urlChanged 事件到插件
         if (!string.IsNullOrEmpty(currentUrl))

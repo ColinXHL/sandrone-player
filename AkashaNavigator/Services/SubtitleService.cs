@@ -95,10 +95,6 @@ public class SubtitleService : ISubtitleService
 
 #region Constructor
 
-    private SubtitleService()
-    {
-    }
-
     /// <summary>
     /// DI 容器使用的构造函数
     /// </summary>

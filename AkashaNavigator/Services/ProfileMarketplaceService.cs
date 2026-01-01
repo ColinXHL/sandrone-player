@@ -257,9 +257,12 @@ public class ProfileMarketplaceService
     /// <summary>
     /// 用于测试的构造函数
     /// </summary>
-    internal ProfileMarketplaceService(ILogService logService, string configFilePath, HttpClient? httpClient = null)
+    internal ProfileMarketplaceService(ILogService logService, IProfileManager profileManager, string configFilePath, HttpClient? httpClient = null)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _profileManager = profileManager ?? throw new ArgumentNullException(nameof(profileManager));
+        _pluginAssociationManager = PluginAssociationManager.Instance;
+        _pluginLibrary = PluginLibrary.Instance;
         _configFilePath = configFilePath;
         _sourceConfig = LoadConfig();
         _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(TimeoutSeconds) };

@@ -284,7 +284,7 @@ public class DataService : IDataService
         try
         {
             var result = JsonHelper.LoadFromFile<List<HistoryItem>>(filePath);
-            _historyCache = result.IsSuccess ? result.Value : new List<HistoryItem>();
+            _historyCache = result.IsSuccess ? result.Value! : new List<HistoryItem>();
         }
         catch (Exception ex)
         {
@@ -304,7 +304,7 @@ public class DataService : IDataService
         try
         {
             var result = JsonHelper.LoadFromFile<List<BookmarkItem>>(filePath);
-            _bookmarkCache = result.IsSuccess ? result.Value : new List<BookmarkItem>();
+            _bookmarkCache = result.IsSuccess ? result.Value! : new List<BookmarkItem>();
         }
         catch (Exception ex)
         {

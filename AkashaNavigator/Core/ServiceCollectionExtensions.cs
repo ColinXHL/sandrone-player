@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using AkashaNavigator.Services;
 using AkashaNavigator.Core.Interfaces;
+using AkashaNavigator.Core.Events;
 using AkashaNavigator.Helpers;
 using AkashaNavigator.Views.Windows;
 using AkashaNavigator.Views.Pages;
@@ -22,6 +23,9 @@ namespace AkashaNavigator.Core
             // ============================================================
             // Level 0: 无依赖服务
             // ============================================================
+
+            // EventBus（无依赖，用于组件间解耦通信）
+            services.AddSingleton<IEventBus, EventBus>();
 
             // LogService（无依赖）
             services.AddSingleton<ILogService, LogService>();

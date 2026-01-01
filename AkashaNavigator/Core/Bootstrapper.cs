@@ -3,6 +3,8 @@ using System;
 using AkashaNavigator.Views.Windows;
 using AkashaNavigator.Views.Dialogs;
 using AkashaNavigator.Core.Interfaces;
+using AkashaNavigator.Core.Events;
+using AkashaNavigator.Core.Events.Events;
 using AkashaNavigator.Plugins.Core;
 
 namespace AkashaNavigator.Core
@@ -14,6 +16,7 @@ namespace AkashaNavigator.Core
     public class Bootstrapper
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IEventBus _eventBus;
         private PlayerWindow? _playerWindow;
         private ControlBarWindow? _controlBarWindow;
 
@@ -23,6 +26,7 @@ namespace AkashaNavigator.Core
             var services = new ServiceCollection();
             services.ConfigureAppServices();
             _serviceProvider = services.BuildServiceProvider();
+            _eventBus = _serviceProvider.GetRequiredService<IEventBus>();
         }
 
         /// <summary>
@@ -44,11 +48,11 @@ namespace AkashaNavigator.Core
             var currentProfileId = profileManager.CurrentProfile?.Id ?? "";
             pluginHost.LoadPluginsForProfile(currentProfileId);
 
-            // 手动创建 ControlBarWindow（依赖 PlayerWindow）
-            _controlBarWindow = new ControlBarWindow(_playerWindow);
+            // 手动创建 ControlBarWindow（依赖 PlayerWindow 和 EventBus）
+            _controlBarWindow = new ControlBarWindow(_playerWindow, _eventBus);
 
-            // 设置窗口间事件绑定
-            SetupWindowBindings();
+            // 设置窗口关闭事件和菜单事件处理
+            SetupEventHandlers();
 
             // 显示主窗口
             _playerWindow.Show();
@@ -58,165 +62,118 @@ namespace AkashaNavigator.Core
         }
 
         /// <summary>
-        /// 设置窗口间事件绑定
+        /// 设置事件处理器
+        /// 导航相关事件已由 EventBus 处理，这里只处理窗口关闭和菜单事件
         /// </summary>
-        private void SetupWindowBindings()
+        private void SetupEventHandlers()
         {
             if (_playerWindow == null || _controlBarWindow == null)
                 return;
 
-            SetupNavigationBindings();
-            SetupPlayerBindings();
-            SetupMenuBindings();
-            SetupBookmarkBindings();
-        }
-
-        /// <summary>
-        /// 设置导航相关事件绑定
-        /// 包含导航请求、后退、前进、刷新事件
-        /// </summary>
-        private void SetupNavigationBindings()
-        {
-            if (_playerWindow == null || _controlBarWindow == null)
-                return;
-
-            // 控制栏导航请求 → 播放器窗口加载
-            _controlBarWindow.NavigateRequested += (s, url) =>
-            { _playerWindow.Navigate(url); };
-
-            // 控制栏后退请求
-            _controlBarWindow.BackRequested += (s, e) =>
-            { _playerWindow.GoBack(); };
-
-            // 控制栏前进请求
-            _controlBarWindow.ForwardRequested += (s, e) =>
-            { _playerWindow.GoForward(); };
-
-            // 控制栏刷新请求
-            _controlBarWindow.RefreshRequested += (s, e) =>
-            { _playerWindow.Refresh(); };
-        }
-
-        /// <summary>
-        /// 设置播放器窗口相关事件绑定
-        /// 包含窗口关闭、URL 变化、导航状态变化事件
-        /// </summary>
-        private void SetupPlayerBindings()
-        {
-            if (_playerWindow == null || _controlBarWindow == null)
-                return;
-
-            // 播放器窗口关闭时，关闭控制栏并退出应用
+            // 播放器窗口关闭时，关闭控制栏
             _playerWindow.Closed += (s, e) =>
             {
                 _controlBarWindow.Close();
-                System.Windows.Application.Current.Shutdown();
             };
 
-            // 播放器 URL 变化时，同步到控制栏
-            _playerWindow.UrlChanged += (s, url) =>
-            { _controlBarWindow.CurrentUrl = url; };
-
-            // 播放器导航状态变化时，更新控制栏按钮
-            _playerWindow.NavigationStateChanged += (s, e) =>
-            {
-                _controlBarWindow.UpdateBackButtonState(_playerWindow.CanGoBack);
-                _controlBarWindow.UpdateForwardButtonState(_playerWindow.CanGoForward);
-            };
-
-            // 播放器 URL 变化时，检查收藏状态
-            _playerWindow.UrlChanged += (s, url) =>
-            {
-                var dataService = _serviceProvider.GetRequiredService<IDataService>();
-                var isBookmarked = dataService.IsBookmarked(url);
-                _controlBarWindow.UpdateBookmarkState(isBookmarked);
-            };
+            // 订阅菜单相关 EventBus 事件
+            SetupMenuEventHandlers();
+            SetupBookmarkEventHandlers();
         }
 
         /// <summary>
-        /// 设置菜单相关事件绑定
-        /// 包含历史记录、收藏夹、插件中心、设置、归档菜单事件
+        /// 设置菜单事件处理器
         /// </summary>
-        private void SetupMenuBindings()
+        private void SetupMenuEventHandlers()
         {
-            if (_playerWindow == null || _controlBarWindow == null)
+            if (_playerWindow == null)
                 return;
 
+            var dataService = _serviceProvider.GetRequiredService<IDataService>();
+
             // 历史记录菜单事件
-            _controlBarWindow.HistoryRequested += (s, e) =>
+            _eventBus.Subscribe<HistoryRequestedEvent>(e =>
             {
                 var historyWindow = _serviceProvider.GetRequiredService<HistoryWindow>();
                 historyWindow.HistoryItemSelected += (sender, url) =>
-                { _playerWindow.Navigate(url); };
+                {
+                    _eventBus.Publish(new HistoryItemSelectedEvent { Url = url });
+                };
                 historyWindow.ShowDialog();
-            };
+            });
 
             // 收藏夹菜单事件
-            _controlBarWindow.BookmarksRequested += (s, e) =>
+            _eventBus.Subscribe<BookmarksRequestedEvent>(e =>
             {
                 var bookmarkPopup = _serviceProvider.GetRequiredService<BookmarkPopup>();
                 bookmarkPopup.BookmarkItemSelected += (sender, url) =>
-                { _playerWindow.Navigate(url); };
+                {
+                    _eventBus.Publish(new BookmarkItemSelectedEvent { Url = url });
+                };
                 bookmarkPopup.ShowDialog();
-            };
+            });
 
             // 插件中心菜单事件
-            _controlBarWindow.PluginCenterRequested += (s, e) =>
+            _eventBus.Subscribe<PluginCenterRequestedEvent>(e =>
             {
                 var pluginCenterWindow = new PluginCenterWindow();
-                // 设置 Owner 为 PlayerWindow，确保插件中心显示在 PlayerWindow 之上
                 pluginCenterWindow.Owner = _playerWindow;
                 pluginCenterWindow.ShowDialog();
-            };
+            });
 
             // 设置菜单事件
-            _controlBarWindow.SettingsRequested += (s, e) =>
+            _eventBus.Subscribe<SettingsRequestedEvent>(e =>
             {
                 var settingsWindow = _serviceProvider.GetRequiredService<SettingsWindow>();
-                // 设置 Owner 为 PlayerWindow，确保设置窗口显示在 PlayerWindow 之上
                 settingsWindow.Owner = _playerWindow;
                 settingsWindow.ShowDialog();
-            };
+            });
 
             // 记录笔记按钮点击事件
-            _controlBarWindow.RecordNoteRequested += (s, e) =>
+            _eventBus.Subscribe<RecordNoteRequestedEvent>(e =>
             {
-                var url = _controlBarWindow.CurrentUrl;
-                var title = _playerWindow.CurrentTitle;
                 var recordDialogFactory = _serviceProvider.GetRequiredService<Func<string, string, RecordNoteDialog>>();
-                var recordDialog = recordDialogFactory(url, title);
+                var recordDialog = recordDialogFactory(e.Url, e.Title);
                 recordDialog.Owner = _playerWindow;
                 recordDialog.ShowDialog();
-            };
+            });
 
             // 开荒笔记菜单事件
-            _controlBarWindow.PioneerNotesRequested += (s, e) =>
+            _eventBus.Subscribe<PioneerNotesRequestedEvent>(e =>
             {
                 var noteWindow = _serviceProvider.GetRequiredService<PioneerNoteWindow>();
                 noteWindow.NoteItemSelected += (sender, url) =>
-                { _playerWindow.Navigate(url); };
+                {
+                    _eventBus.Publish(new PioneerNoteItemSelectedEvent { Url = url });
+                };
                 noteWindow.Owner = _playerWindow;
                 noteWindow.ShowDialog();
-            };
+            });
+
+            // 订阅 URL 变化事件，用于更新收藏状态
+            _eventBus.Subscribe<UrlChangedEvent>(e =>
+            {
+                if (!string.IsNullOrEmpty(e.Url))
+                {
+                    var isBookmarked = dataService.IsBookmarked(e.Url);
+                    _eventBus.Publish(new BookmarkStateChangedEvent { IsBookmarked = isBookmarked });
+                }
+            });
         }
 
         /// <summary>
-        /// 设置收藏按钮相关事件绑定
+        /// 设置收藏事件处理器
         /// </summary>
-        private void SetupBookmarkBindings()
+        private void SetupBookmarkEventHandlers()
         {
-            if (_playerWindow == null || _controlBarWindow == null)
-                return;
+            var dataService = _serviceProvider.GetRequiredService<IDataService>();
 
-            // 收藏按钮点击事件
-            _controlBarWindow.BookmarkRequested += (s, e) =>
+            // 订阅收藏请求事件
+            _eventBus.Subscribe<BookmarkRequestedEvent>(e =>
             {
-                var url = _controlBarWindow.CurrentUrl;
-                var title = _playerWindow.CurrentTitle;
-                var dataService = _serviceProvider.GetRequiredService<IDataService>();
-                var isBookmarked = dataService.ToggleBookmark(url, title);
-                _controlBarWindow.UpdateBookmarkState(isBookmarked);
-            };
+                var isBookmarked = dataService.ToggleBookmark(e.Url, e.Title);
+                _eventBus.Publish(new BookmarkStateChangedEvent { IsBookmarked = isBookmarked });
+            });
         }
 
         /// <summary>

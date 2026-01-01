@@ -57,16 +57,6 @@ public class PioneerNoteService : IPioneerNoteService
 
 #region Constructor
 
-    private PioneerNoteService()
-    {
-        // 监听 Profile 切换，清除缓存（与 DataService 保持一致）
-        _profileManager.ProfileChanged += (s, e) =>
-        {
-            _cacheLoaded = false;
-            _cache = new PioneerNoteData();
-        };
-    }
-
     /// <summary>
     /// DI 容器使用的构造函数
     /// </summary>
@@ -615,7 +605,7 @@ public class PioneerNoteService : IPioneerNoteService
         try
         {
             var result = JsonHelper.LoadFromFile<PioneerNoteData>(filePath);
-            _cache = result.IsSuccess ? result.Value : new PioneerNoteData();
+            _cache = result.IsSuccess ? result.Value! : new PioneerNoteData();
         }
         catch (Exception ex)
         {
