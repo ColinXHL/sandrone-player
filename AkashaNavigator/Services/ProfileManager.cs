@@ -755,7 +755,7 @@ public class ProfileManager : IProfileManager
         // 调用 SubscriptionManager 执行取消订阅
         var result = _subscriptionManager.UnsubscribeProfile(profileId);
 
-        if (result.Success)
+        if (result.IsSuccess)
         {
             // 从列表中移除
             Profiles.RemoveAll(p => p.Id.Equals(profileId, StringComparison.OrdinalIgnoreCase));

@@ -291,7 +291,7 @@ public class SubscriptionManager : ISubscriptionManager
 
         if (string.IsNullOrWhiteSpace(profileId))
         {
-            result.Success = false;
+            result.IsSuccess = false;
             result.ErrorMessage = "profileId 为空";
             return result;
         }
@@ -301,7 +301,7 @@ public class SubscriptionManager : ISubscriptionManager
         // 检查是否已订阅
         if (!_config.IsProfileSubscribed(profileId))
         {
-            result.Success = false;
+            result.IsSuccess = false;
             result.ErrorMessage = $"Profile '{profileId}' 未订阅";
             return result;
         }
@@ -326,13 +326,13 @@ public class SubscriptionManager : ISubscriptionManager
             // 保存配置
             Save();
 
-            result.Success = true;
+            result.IsSuccess = true;
             _logService.Info("SubscriptionManager", "成功取消订阅 Profile '{ProfileId}'", profileId);
             return result;
         }
         catch (Exception ex)
         {
-            result.Success = false;
+            result.IsSuccess = false;
             result.ErrorMessage = ex.Message;
             _logService.Error("SubscriptionManager", "取消订阅 Profile '{ProfileId}' 失败: {ErrorMessage}",
                                       profileId, ex.Message);

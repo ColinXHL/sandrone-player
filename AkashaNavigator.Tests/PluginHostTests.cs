@@ -412,7 +412,7 @@ function onUnload() {
         var result = host.UnsubscribePlugin(pluginId);
 
         // 验证结果
-        var unsubscribeSuccess = result.Success;
+        var unsubscribeSuccess = result.IsSuccess;
         var dirExistsAfter = Directory.Exists(pluginDir);
         var pluginInListAfter = host.LoadedPlugins.Any(p => p.PluginId == pluginId);
         var loadedCountAfter = host.LoadedPlugins.Count;
@@ -475,7 +475,7 @@ function onUnload() {}
         var result = host.UnsubscribePlugin(targetPluginId);
 
         // 验证结果
-        var unsubscribeSuccess = result.Success;
+        var unsubscribeSuccess = result.IsSuccess;
         var targetDirDeleted = !Directory.Exists(targetPluginDir);
         var targetRemovedFromList = !host.LoadedPlugins.Any(p => p.PluginId == targetPluginId);
 

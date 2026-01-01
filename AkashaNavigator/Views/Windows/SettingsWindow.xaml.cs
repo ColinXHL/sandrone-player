@@ -436,7 +436,7 @@ public partial class SettingsWindow : AnimatedWindow
         // 调用 ProfileManager.UnsubscribeProfile
         var unsubscribeResult = _profileManager.UnsubscribeProfile(selectedProfile.Id);
 
-        if (unsubscribeResult.Success)
+        if (unsubscribeResult.IsSuccess)
         {
             Debug.WriteLine($"[Settings] 配置 {selectedProfile.Id} 已取消订阅");
 

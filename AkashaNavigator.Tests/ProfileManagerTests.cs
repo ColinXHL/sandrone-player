@@ -165,7 +165,7 @@ public class ProfileManagerTests : IDisposable
 
         // Act & Assert: 删除不存在的目录应该是幂等的
         var result = UnsubscribeResult.Succeeded();
-        Assert.True(result.Success);
+        Assert.True(result.IsSuccess);
     }
 
 #endregion
@@ -218,7 +218,7 @@ public class ProfileManagerTests : IDisposable
         if (isDefault)
         {
             var result = UnsubscribeResult.Failed("不能删除默认 Profile");
-            Assert.False(result.Success);
+            Assert.False(result.IsSuccess);
             Assert.Contains("默认", result.ErrorMessage);
         }
     }
@@ -235,7 +235,7 @@ public class ProfileManagerTests : IDisposable
     {
         var result = UnsubscribeResult.Succeeded();
 
-        Assert.True(result.Success);
+        Assert.True(result.IsSuccess);
         Assert.Null(result.ErrorMessage);
     }
 
@@ -248,7 +248,7 @@ public class ProfileManagerTests : IDisposable
         var errorMessage = "测试错误消息";
         var result = UnsubscribeResult.Failed(errorMessage);
 
-        Assert.False(result.Success);
+        Assert.False(result.IsSuccess);
         Assert.Equal(errorMessage, result.ErrorMessage);
     }
 
@@ -420,7 +420,7 @@ public class ProfileManagerTests : IDisposable
         if (isDefault)
         {
             var result = UnsubscribeResult.Failed("不能取消订阅默认 Profile");
-            Assert.False(result.Success);
+            Assert.False(result.IsSuccess);
             Assert.Contains("默认", result.ErrorMessage);
         }
     }

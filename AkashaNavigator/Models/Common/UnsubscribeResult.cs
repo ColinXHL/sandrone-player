@@ -10,7 +10,7 @@ public class UnsubscribeResult
     /// <summary>
     /// 操作是否成功
     /// </summary>
-    public bool Success { get; set; }
+    public bool IsSuccess { get; set; }
 
     /// <summary>
     /// 错误消息（失败时）
@@ -25,12 +25,12 @@ public class UnsubscribeResult
     /// <summary>
     /// 创建成功结果
     /// </summary>
-    public static UnsubscribeResult Succeeded() => new() { Success = true };
+    public static UnsubscribeResult Succeeded() => new() { IsSuccess = true };
 
     /// <summary>
     /// 创建失败结果
     /// </summary>
-    public static UnsubscribeResult Failed(string errorMessage) => new() { Success = false,
+    public static UnsubscribeResult Failed(string errorMessage) => new() { IsSuccess = false,
                                                                            ErrorMessage = errorMessage };
 }
 }
