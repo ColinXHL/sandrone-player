@@ -1,208 +1,129 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Profile;
-using AkashaNavigator.Services;
-using AkashaNavigator.Core.Interfaces;
+using AkashaNavigator.ViewModels.Dialogs;
 
 namespace AkashaNavigator.Views.Dialogs
 {
-/// <summary>
-/// Profile 编辑对话框
-/// </summary>
-public partial class ProfileEditDialog : AnimatedWindow
-{
-#region Properties
-
     /// <summary>
-    /// 是否确认保存
+    /// Profile 编辑对话框
     /// </summary>
-    public bool IsConfirmed { get; private set; }
-
-    /// <summary>
-    /// 新的 Profile 名称
-    /// </summary>
-    public string NewName { get; private set; } = string.Empty;
-
-    /// <summary>
-    /// 新的 Profile 图标
-    /// </summary>
-    public string NewIcon { get; private set; } = "📦";
-
-#endregion
-
-#region Fields
-
-    private readonly GameProfile _profile;
-    private readonly IProfileManager _profileManager;
-    private readonly string _originalName;
-    private readonly string _originalIcon;
-    private string _selectedIcon;
-
-#endregion
-
-#region Constructor
-
-    /// <summary>
-    /// 创建 Profile 编辑对话框
-    /// </summary>
-    /// <param name="profile">要编辑的 Profile</param>
-    public ProfileEditDialog(IProfileManager profileManager, GameProfile profile)
+    public partial class ProfileEditDialog : AnimatedWindow
     {
-        _profileManager = profileManager;
-        InitializeComponent();
+        #region Properties
 
-        _profile = profile;
-        _originalName = profile.Name;
-        _originalIcon = profile.Icon;
-        _selectedIcon = profile.Icon;
+        /// <summary>
+        /// 是否确认保存
+        /// </summary>
+        public bool IsConfirmed { get; private set; }
 
-        // 初始化图标选择器
-        InitializeIconSelector();
+        #endregion
 
-        // 预填当前名称
-        TxtName.Text = profile.Name;
-        NamePlaceholder.Visibility = Visibility.Collapsed;
+        #region Fields
 
-        // 更新保存按钮状态
-        UpdateSaveButton();
-    }
+        private readonly ProfileEditDialogViewModel _viewModel;
 
-#endregion
+        #endregion
 
-#region Icon Selector
+        #region Constructor
 
-    /// <summary>
-    /// 初始化图标选择器
-    /// </summary>
-    private void InitializeIconSelector()
-    {
-        var icons = _profileManager.ProfileIcons;
-
-        foreach (var icon in icons)
+        /// <summary>
+        /// 创建 Profile 编辑对话框
+        /// </summary>
+        /// <param name="viewModel">ViewModel</param>
+        public ProfileEditDialog(ProfileEditDialogViewModel viewModel)
         {
-            var radioButton = new RadioButton { Content = icon, FontSize = 16, GroupName = "IconGroup", Tag = icon,
-                                                IsChecked = icon == _originalIcon };
-            radioButton.Style = (Style)FindResource("IconButtonStyle");
-            radioButton.Checked += IconButton_Checked;
+            _viewModel = viewModel ?? throw new System.ArgumentNullException(nameof(viewModel));
+            InitializeComponent();
 
-            IconPanel.Children.Add(radioButton);
-        }
-    }
+            DataContext = _viewModel;
 
-    private void IconButton_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioButton rb && rb.Tag is string icon)
-        {
-            _selectedIcon = icon;
-            UpdateSaveButton();
-        }
-    }
+            // 初始化图标选择器（UI 逻辑保留在 Code-behind）
+            InitializeIconSelector();
 
-#endregion
+            // 订阅 ViewModel 的关闭请求
+            _viewModel.RequestClose += OnRequestClose;
 
-#region Event Handlers
-
-    private void TxtName_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        // 更新占位符可见性
-        NamePlaceholder.Visibility = string.IsNullOrEmpty(TxtName.Text) ? Visibility.Visible : Visibility.Collapsed;
-
-        // 清除错误提示
-        TxtError.Visibility = Visibility.Collapsed;
-
-        // 更新保存按钮状态
-        UpdateSaveButton();
-    }
-
-    private void BtnClose_Click(object sender, RoutedEventArgs e)
-    {
-        IsConfirmed = false;
-        CloseWithAnimation();
-    }
-
-    private void BtnCancel_Click(object sender, RoutedEventArgs e)
-    {
-        IsConfirmed = false;
-        CloseWithAnimation();
-    }
-
-    private void BtnSave_Click(object sender, RoutedEventArgs e)
-    {
-        // 验证输入
-        if (!ValidateInput())
-        {
-            return;
+            // 预填当前名称时隐藏占位符
+            NamePlaceholder.Visibility = Visibility.Collapsed;
         }
 
-        // 获取输入值
-        NewName = TxtName.Text.Trim();
-        NewIcon = _selectedIcon;
+        #endregion
 
-        // 更新 Profile
-        var success = _profileManager.UpdateProfile(_profile.Id, NewName, NewIcon);
+        #region Icon Selector (UI 逻辑)
 
-        if (success)
+        /// <summary>
+        /// 初始化图标选择器（UI 逻辑保留在 Code-behind）
+        /// </summary>
+        private void InitializeIconSelector()
         {
-            IsConfirmed = true;
-            DialogResult = true;
+            var originalIcon = _viewModel.SelectedIcon;
+
+            foreach (var icon in _viewModel.AvailableIcons)
+            {
+                var radioButton = new RadioButton
+                {
+                    Content = icon,
+                    FontSize = 16,
+                    GroupName = "IconGroup",
+                    Tag = icon,
+                    IsChecked = icon == originalIcon
+                };
+                radioButton.Style = (Style)FindResource("IconButtonStyle");
+                radioButton.Checked += IconButton_Checked;
+
+                IconPanel.Children.Add(radioButton);
+            }
+        }
+
+        private void IconButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton rb && rb.Tag is string icon)
+            {
+                _viewModel.SelectedIcon = icon;
+            }
+        }
+
+        #endregion
+
+        #region UI Event Handlers
+
+        /// <summary>
+        /// 标题栏拖动
+        /// </summary>
+        private new void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            base.TitleBar_MouseLeftButtonDown(sender, e);
+        }
+
+        /// <summary>
+        /// 关闭按钮
+        /// </summary>
+        private void BtnClose_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.CloseCommand.Execute(null);
+        }
+
+        /// <summary>
+        /// 名称输入框变化时更新占位符可见性
+        /// </summary>
+        private void TxtName_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            NamePlaceholder.Visibility = string.IsNullOrEmpty(TxtName.Text) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 处理 ViewModel 的关闭请求
+        /// </summary>
+        private void OnRequestClose(object? sender, bool? dialogResult)
+        {
+            IsConfirmed = dialogResult == true;
+            DialogResult = dialogResult;
             CloseWithAnimation();
         }
-        else
-        {
-            ShowError("保存失败");
-        }
+
+        #endregion
     }
-
-#endregion
-
-#region Validation
-
-    /// <summary>
-    /// 验证输入
-    /// </summary>
-    private bool ValidateInput()
-    {
-        var name = TxtName.Text?.Trim();
-
-        // 检查名称是否为空
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            ShowError("Profile 名称不能为空");
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// 显示错误消息
-    /// </summary>
-    private void ShowError(string message)
-    {
-        TxtError.Text = message;
-        TxtError.Visibility = Visibility.Visible;
-    }
-
-    /// <summary>
-    /// 更新保存按钮状态
-    /// </summary>
-    private void UpdateSaveButton()
-    {
-        var name = TxtName.Text?.Trim();
-
-        // 名称不能为空
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            BtnSave.IsEnabled = false;
-            return;
-        }
-
-        // 检查是否有变化
-        var hasChanges = name != _originalName || _selectedIcon != _originalIcon;
-        BtnSave.IsEnabled = hasChanges;
-    }
-
-#endregion
-}
 }

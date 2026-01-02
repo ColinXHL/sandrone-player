@@ -5,6 +5,7 @@ using AkashaNavigator.Core.Interfaces;
 using AkashaNavigator.Models.Common;
 using AkashaNavigator.Services;
 using AkashaNavigator.Views.Dialogs;
+using AkashaNavigator.ViewModels.Dialogs;
 
 namespace AkashaNavigator.Services
 {
@@ -81,6 +82,35 @@ public class DialogFactory : IDialogFactory
         var configService = _serviceProvider.GetRequiredService<IConfigService>();
 
         return new PluginUpdatePromptDialog(configService, updates);
+    }
+
+    /// <summary>
+    /// 创建 BookmarkPopup（带 ViewModel）
+    /// </summary>
+    public BookmarkPopup CreateBookmarkPopup()
+    {
+        var viewModel = _serviceProvider.GetRequiredService<BookmarkPopupViewModel>();
+        return new BookmarkPopup(viewModel);
+    }
+
+    /// <summary>
+    /// 创建 ProfileCreateDialog（带 ViewModel）
+    /// </summary>
+    public ProfileCreateDialog CreateProfileCreateDialog()
+    {
+        var viewModel = _serviceProvider.GetRequiredService<ProfileCreateDialogViewModel>();
+        return new ProfileCreateDialog(viewModel);
+    }
+
+    /// <summary>
+    /// 创建 ProfileEditDialog（带 ViewModel）
+    /// </summary>
+    /// <param name="profile">要编辑的 Profile</param>
+    public ProfileEditDialog CreateProfileEditDialog(Models.Profile.GameProfile profile)
+    {
+        var profileManager = _serviceProvider.GetRequiredService<IProfileManager>();
+        var viewModel = new ProfileEditDialogViewModel(profileManager, profile);
+        return new ProfileEditDialog(viewModel);
     }
 }
 }

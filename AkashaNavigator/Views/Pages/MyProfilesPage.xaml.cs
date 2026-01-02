@@ -26,6 +26,7 @@ public partial class MyProfilesPage : UserControl
     private readonly PluginLibrary _pluginLibrary; // 使用具体类，因为需要 InstallPlugin 方法
     private readonly IPluginHost _pluginHost;
     private readonly INotificationService _notificationService;
+    private readonly IDialogFactory _dialogFactory;
     private string? _currentProfileId;
 
     // DI构造函数（推荐使用）
@@ -34,13 +35,15 @@ public partial class MyProfilesPage : UserControl
         IPluginAssociationManager pluginAssociationManager,
         PluginLibrary pluginLibrary,
         IPluginHost pluginHost,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IDialogFactory dialogFactory)
     {
         _profileManager = profileManager;
         _pluginAssociationManager = pluginAssociationManager;
         _pluginLibrary = pluginLibrary;
         _pluginHost = pluginHost;
         _notificationService = notificationService;
+        _dialogFactory = dialogFactory;
 
         InitializeComponent();
         Loaded += MyProfilesPage_Loaded;
@@ -541,7 +544,7 @@ public partial class MyProfilesPage : UserControl
     /// </summary>
     private void BtnNewProfile_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ProfileCreateDialog(_pluginLibrary, _profileManager);
+        var dialog = _dialogFactory.CreateProfileCreateDialog();
         dialog.Owner = Window.GetWindow(this);
 
         if (dialog.ShowDialog() == true && dialog.IsConfirmed && !string.IsNullOrEmpty(dialog.ProfileId))
@@ -572,7 +575,7 @@ public partial class MyProfilesPage : UserControl
             return;
         }
 
-        var dialog = new ProfileEditDialog(_profileManager, profile);
+        var dialog = _dialogFactory.CreateProfileEditDialog(profile);
         dialog.Owner = Window.GetWindow(this);
 
         if (dialog.ShowDialog() == true && dialog.IsConfirmed)

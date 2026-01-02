@@ -39,5 +39,21 @@ public interface IDialogFactory
     /// </summary>
     /// <param name="updates">可用更新列表</param>
     PluginUpdatePromptDialog CreatePluginUpdatePromptDialog(List<UpdateCheckResult> updates);
+
+    /// <summary>
+    /// 创建 BookmarkPopup（带 ViewModel）
+    /// </summary>
+    BookmarkPopup CreateBookmarkPopup();
+
+    /// <summary>
+    /// 创建 ProfileCreateDialog（带 ViewModel）
+    /// </summary>
+    ProfileCreateDialog CreateProfileCreateDialog();
+
+    /// <summary>
+    /// 创建 ProfileEditDialog（带 ViewModel）
+    /// </summary>
+    /// <param name="profile">要编辑的 Profile</param>
+    ProfileEditDialog CreateProfileEditDialog(Models.Profile.GameProfile profile);
 }
 }

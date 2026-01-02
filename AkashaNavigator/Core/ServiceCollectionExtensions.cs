@@ -6,6 +6,7 @@ using AkashaNavigator.Helpers;
 using AkashaNavigator.Views.Windows;
 using AkashaNavigator.Views.Pages;
 using AkashaNavigator.Views.Dialogs;
+using AkashaNavigator.ViewModels.Dialogs;
 
 namespace AkashaNavigator.Core
 {
@@ -135,8 +136,13 @@ namespace AkashaNavigator.Core
             // HistoryWindow（依赖IDataService）
             services.AddTransient<HistoryWindow>();
 
-            // BookmarkPopup（依赖IDataService）
+            // BookmarkPopup（依赖BookmarkPopupViewModel）
+            services.AddTransient<BookmarkPopupViewModel>();
             services.AddTransient<BookmarkPopup>();
+
+            // ProfileCreateDialog（依赖ProfileCreateDialogViewModel）
+            services.AddTransient<ProfileCreateDialogViewModel>();
+            services.AddTransient<ProfileCreateDialog>();
 
             // RecordNoteDialog 工厂方法（依赖IPioneerNoteService + url, title参数 + PioneerNoteWindow工厂）
             services.AddSingleton<Func<string, string, RecordNoteDialog>>(sp =>
@@ -170,9 +176,6 @@ namespace AkashaNavigator.Core
 
             // PluginUpdatePromptDialog（依赖IConfigService）
             services.AddTransient<PluginUpdatePromptDialog>();
-
-            // ProfileCreateDialog（依赖IPluginLibrary, IProfileManager）
-            services.AddTransient<ProfileCreateDialog>();
 
             // DialogFactory（工厂模式创建带参数的Dialog）
             services.AddSingleton<IDialogFactory, DialogFactory>();

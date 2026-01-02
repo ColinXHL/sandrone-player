@@ -38,15 +38,16 @@
             <StackPanel Grid.Row="1" Margin="0,0,0,16">
                 <TextBlock Text="名称" Foreground="#888" FontSize="12" Margin="0,0,0,6"/>
                 <Grid>
-                    <TextBox x:Name="TxtName" Style="{StaticResource DarkTextBoxStyle}" 
-                             TextChanged="TxtName_TextChanged"/>
-                    <TextBlock x:Name="NamePlaceholder" Text="输入 Profile 名称..." 
+                    <TextBox x:Name="TxtName" Style="{StaticResource DarkTextBoxStyle}"
+                             Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock x:Name="NamePlaceholder" Text="输入 Profile 名称..."
                                Foreground="#666" FontSize="13"
                                IsHitTestVisible="False" Margin="12,0,0,0"
                                VerticalAlignment="Center"/>
                 </Grid>
-                <TextBlock x:Name="TxtError" Foreground="#F87171" FontSize="11" 
-                           Margin="0,4,0,0" Visibility="Collapsed"/>
+                <TextBlock x:Name="TxtError" Foreground="#F87171" FontSize="11"
+                           Margin="0,4,0,0" Visibility="{Binding ShowError, Converter={StaticResource BoolToVisibilityConverter}}"
+                           Text="{Binding ErrorMessage}"/>
             </StackPanel>
 
             <!-- 图标选择 -->
@@ -63,16 +64,16 @@
             <!-- 插件列表 -->
             <Border Grid.Row="4" Background="#252525" CornerRadius="4" Padding="8">
                 <Grid>
-                    <TextBlock x:Name="NoPluginsText" Text="暂无已安装的插件" 
+                    <TextBlock x:Name="NoPluginsText" Text="暂无已安装的插件"
                                Foreground="#666" FontSize="13"
-                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <ScrollViewer Style="{StaticResource DarkScrollViewer}" 
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Visibility="{Binding HasPlugins, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                    <ScrollViewer Style="{StaticResource DarkScrollViewer}"
                                   VerticalScrollBarVisibility="Auto">
-                        <ItemsControl x:Name="PluginList">
+                        <ItemsControl x:Name="PluginList" ItemsSource="{Binding PluginItems}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource PluginItemStyle}" 
-                                            MouseLeftButtonUp="PluginItem_Click" Tag="{Binding Id}">
+                                    <Border Style="{StaticResource PluginItemStyle}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -83,9 +84,9 @@
                                             <StackPanel Grid.Column="1">
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="🔌" FontSize="13" Margin="0,0,6,0"/>
-                                                    <TextBlock Text="{Binding Name}" Foreground="White" 
+                                                    <TextBlock Text="{Binding Name}" Foreground="White"
                                                                FontSize="13" FontWeight="SemiBold"/>
-                                                    <TextBlock Text="{Binding Version, StringFormat=' v{0}'}" 
+                                                    <TextBlock Text="{Binding Version, StringFormat=' v{0}'}"
                                                                Foreground="#666" FontSize="11" Margin="6,0,0,0"/>
                                                 </StackPanel>
                                                 <TextBlock Text="{Binding Description}" Foreground="#888" FontSize="11"
@@ -103,10 +104,10 @@
 
             <!-- 按钮区域 -->
             <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                <Button Content="取消" Style="{StaticResource SecondaryButtonStyle}" 
-                        Click="BtnCancel_Click" Margin="0,0,8,0"/>
-                <Button x:Name="BtnCreate" Content="创建" Style="{StaticResource PrimaryButtonStyle}" 
-                        Click="BtnCreate_Click" IsEnabled="False"/>
+                <Button Content="取消" Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding CancelCommand}" Margin="0,0,8,0"/>
+                <Button x:Name="BtnCreate" Content="创建" Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding CreateCommand}"/>
             </StackPanel>
         </Grid>
     </Border>

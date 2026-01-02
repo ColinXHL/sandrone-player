@@ -1,254 +1,133 @@
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using AkashaNavigator.Helpers;
-using AkashaNavigator.Models.Profile;
-using AkashaNavigator.Services;
-using AkashaNavigator.Core.Interfaces;
+using AkashaNavigator.ViewModels.Dialogs;
 
 namespace AkashaNavigator.Views.Dialogs
 {
-/// <summary>
-/// Profile 创建对话框
-/// </summary>
-public partial class ProfileCreateDialog : AnimatedWindow
-{
-#region Properties
-
     /// <summary>
-    /// 是否确认创建
+    /// Profile 创建对话框
     /// </summary>
-    public bool IsConfirmed { get; private set; }
-
-    /// <summary>
-    /// 创建的 Profile ID
-    /// </summary>
-    public string? ProfileId { get; private set; }
-
-    /// <summary>
-    /// Profile 名称
-    /// </summary>
-    public string ProfileName { get; private set; } = string.Empty;
-
-    /// <summary>
-    /// Profile 图标
-    /// </summary>
-    public string ProfileIcon { get; private set; } = "📦";
-
-    /// <summary>
-    /// 选中的插件 ID 列表
-    /// </summary>
-    public List<string> SelectedPluginIds { get; private set; } = new();
-
-#endregion
-
-#region Fields
-
-    private readonly List<PluginSelectorItem> _pluginItems;
-    private readonly IPluginLibrary _pluginLibrary;
-    private readonly IProfileManager _profileManager;
-    private string _selectedIcon = "📦";
-
-#endregion
-
-#region Constructor
-
-    public ProfileCreateDialog(IPluginLibrary pluginLibrary, IProfileManager profileManager)
+    public partial class ProfileCreateDialog : AnimatedWindow
     {
-        _pluginLibrary = pluginLibrary;
-        _profileManager = profileManager;
-        InitializeComponent();
+        #region Properties
 
-        // 初始化图标选择器
-        InitializeIconSelector();
+        /// <summary>
+        /// 是否确认创建
+        /// </summary>
+        public bool IsConfirmed { get; private set; }
 
-        // 加载已安装插件列表
-        var installedPlugins = _pluginLibrary.GetInstalledPlugins();
-        _pluginItems = installedPlugins
-                           .Select(p => new PluginSelectorItem { Id = p.Id, Name = p.Name, Version = p.Version,
-                                                                 Description = p.Description, IsSelected = false })
-                           .ToList();
+        /// <summary>
+        /// 创建的 Profile ID
+        /// </summary>
+        public string? ProfileId { get; private set; }
 
-        // 监听选择变化
-        foreach (var item in _pluginItems)
+        #endregion
+
+        #region Fields
+
+        private readonly ProfileCreateDialogViewModel _viewModel;
+
+        #endregion
+
+        #region Constructor
+
+        public ProfileCreateDialog(ProfileCreateDialogViewModel viewModel)
         {
-            item.PropertyChanged += Item_PropertyChanged;
+            _viewModel = viewModel ?? throw new System.ArgumentNullException(nameof(viewModel));
+            InitializeComponent();
+
+            DataContext = _viewModel;
+
+            // 初始化图标选择器（UI 逻辑保留在 Code-behind）
+            InitializeIconSelector();
+
+            // 订阅 ViewModel 的关闭请求
+            _viewModel.RequestClose += OnRequestClose;
         }
 
-        // 设置插件列表
-        if (_pluginItems.Count > 0)
+        #endregion
+
+        #region Icon Selector (UI 逻辑)
+
+        /// <summary>
+        /// 初始化图标选择器（UI 逻辑保留在 Code-behind）
+        /// </summary>
+        private void InitializeIconSelector()
         {
-            PluginList.ItemsSource = _pluginItems;
-            NoPluginsText.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            NoPluginsText.Visibility = Visibility.Visible;
-        }
-    }
+            bool isFirst = true;
 
-#endregion
-
-#region Icon Selector
-
-    /// <summary>
-    /// 初始化图标选择器
-    /// </summary>
-    private void InitializeIconSelector()
-    {
-        var icons = ProfileManager.ProfileIcons;
-        bool isFirst = true;
-
-        foreach (var icon in icons)
-        {
-            var radioButton = new RadioButton { Content = icon, FontSize = 16, GroupName = "IconGroup", Tag = icon,
-                                                IsChecked = isFirst };
-            radioButton.Style = (Style)FindResource("IconButtonStyle");
-            radioButton.Checked += IconButton_Checked;
-
-            IconPanel.Children.Add(radioButton);
-
-            if (isFirst)
+            foreach (var icon in _viewModel.AvailableIcons)
             {
-                _selectedIcon = icon;
-                isFirst = false;
+                var radioButton = new RadioButton
+                {
+                    Content = icon,
+                    FontSize = 16,
+                    GroupName = "IconGroup",
+                    Tag = icon,
+                    IsChecked = isFirst
+                };
+                radioButton.Style = (Style)FindResource("IconButtonStyle");
+                radioButton.Checked += IconButton_Checked;
+
+                IconPanel.Children.Add(radioButton);
+
+                if (isFirst)
+                {
+                    isFirst = false;
+                }
             }
         }
-    }
 
-    private void IconButton_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioButton rb && rb.Tag is string icon)
+        private void IconButton_Checked(object sender, RoutedEventArgs e)
         {
-            _selectedIcon = icon;
-        }
-    }
-
-#endregion
-
-#region Event Handlers
-
-    private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        // 插件选择变化时可以更新 UI（如果需要）
-    }
-
-    private void TxtName_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        // 更新占位符可见性
-        NamePlaceholder.Visibility = string.IsNullOrEmpty(TxtName.Text) ? Visibility.Visible : Visibility.Collapsed;
-
-        // 清除错误提示
-        TxtError.Visibility = Visibility.Collapsed;
-
-        // 更新创建按钮状态
-        UpdateCreateButton();
-    }
-
-    private void PluginItem_Click(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is FrameworkElement element && element.Tag is string pluginId)
-        {
-            var item = _pluginItems.FirstOrDefault(i => i.Id == pluginId);
-            if (item != null)
+            if (sender is RadioButton rb && rb.Tag is string icon)
             {
-                item.IsSelected = !item.IsSelected;
+                _viewModel.SelectedIcon = icon;
             }
         }
-    }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e)
-    {
-        IsConfirmed = false;
-        CloseWithAnimation();
-    }
+        #endregion
 
-    private void BtnCancel_Click(object sender, RoutedEventArgs e)
-    {
-        IsConfirmed = false;
-        CloseWithAnimation();
-    }
+        #region UI Event Handlers
 
-    private void BtnCreate_Click(object sender, RoutedEventArgs e)
-    {
-        // 验证输入
-        if (!ValidateInput())
+        /// <summary>
+        /// 标题栏拖动
+        /// </summary>
+        private new void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            return;
+            base.TitleBar_MouseLeftButtonDown(sender, e);
         }
 
-        // 获取输入值
-        ProfileName = TxtName.Text.Trim();
-        ProfileIcon = _selectedIcon;
-        SelectedPluginIds = _pluginItems.Where(i => i.IsSelected).Select(i => i.Id).ToList();
-
-        // 生成 Profile ID
-        var generatedId = _profileManager.GenerateProfileId(ProfileName);
-
-        // 检查 ID 是否已存在
-        if (_profileManager.ProfileIdExists(generatedId))
+        /// <summary>
+        /// 关闭按钮
+        /// </summary>
+        private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
-            ShowError("已存在同名 Profile");
-            return;
+            _viewModel.CloseCommand.Execute(null);
         }
 
-        // 创建 Profile
-        var result = _profileManager.CreateProfile(generatedId, ProfileName, ProfileIcon, SelectedPluginIds);
-
-        if (result.IsSuccess)
+        /// <summary>
+        /// 名称输入框变化时更新占位符可见性
+        /// </summary>
+        private void TxtName_TextChanged(object sender, TextChangedEventArgs e)
         {
-            ProfileId = result.ProfileId;
-            IsConfirmed = true;
-            DialogResult = true;
+            NamePlaceholder.Visibility = string.IsNullOrEmpty(TxtName.Text) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 处理 ViewModel 的关闭请求
+        /// </summary>
+        private void OnRequestClose(object? sender, bool? dialogResult)
+        {
+            IsConfirmed = dialogResult == true;
+            ProfileId = _viewModel.CreatedProfileId;
+            DialogResult = dialogResult;
             CloseWithAnimation();
         }
-        else
-        {
-            ShowError(result.ErrorMessage ?? "创建失败");
-        }
+
+        #endregion
     }
-
-#endregion
-
-#region Validation
-
-    /// <summary>
-    /// 验证输入
-    /// </summary>
-    private bool ValidateInput()
-    {
-        var name = TxtName.Text?.Trim();
-
-        // 检查名称是否为空
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            ShowError("Profile 名称不能为空");
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// 显示错误消息
-    /// </summary>
-    private void ShowError(string message)
-    {
-        TxtError.Text = message;
-        TxtError.Visibility = Visibility.Visible;
-    }
-
-    /// <summary>
-    /// 更新创建按钮状态
-    /// </summary>
-    private void UpdateCreateButton()
-    {
-        BtnCreate.IsEnabled = !string.IsNullOrWhiteSpace(TxtName.Text);
-    }
-
-#endregion
-}
 }
