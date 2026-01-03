@@ -25,7 +25,7 @@ private readonly ConfirmDialogViewModel _viewModel;
 /// <summary>
 /// 对话框结果：true=确定，false=取消，null=关闭按钮
 /// </summary>
-public bool? Result => _viewModel.Result;
+public bool? Result => _viewModel.DialogResult;
 
 #endregion
 
@@ -42,7 +42,7 @@ public ConfirmDialog(ConfirmDialogViewModel viewModel)
     DataContext = _viewModel;
 
     // 订阅 ViewModel 的关闭请求事件
-    _viewModel.CloseRequested += OnCloseRequested;
+    _viewModel.RequestClose += OnRequestClose;
 }
 
 #endregion
@@ -52,7 +52,7 @@ public ConfirmDialog(ConfirmDialogViewModel viewModel)
 /// <summary>
 /// 处理 ViewModel 的关闭请求
 /// </summary>
-private void OnCloseRequested(object? sender, EventArgs e)
+private void OnRequestClose(object? sender, EventArgs e)
 {
     CloseWithAnimation();
 }

@@ -14,6 +14,7 @@ using AkashaNavigator.Models.Config;
 using AkashaNavigator.Models.Profile;
 using AkashaNavigator.Services;
 using AkashaNavigator.Views.Dialogs;
+using AkashaNavigator.ViewModels.Dialogs;
 using Microsoft.Web.WebView2.Core;
 using Cursors = System.Windows.Input.Cursors;
 using MessageBox = System.Windows.MessageBox;
@@ -1053,12 +1054,12 @@ public partial class PlayerWindow : Window
                     // 根据用户选择执行相应操作
                     switch (exitPrompt.Result)
                     {
-                    case ExitRecordPrompt.PromptResult.Cancel:
+                    case PromptResult.Cancel:
                         // 取消退出，不做任何操作
                         e.Cancel = true;
                         return;
 
-                    case ExitRecordPrompt.PromptResult.OpenPioneerNotes:
+                    case PromptResult.OpenPioneerNotes:
                         // 取消退出，打开开荒笔记窗口
                         e.Cancel = true;
                         var pioneerNoteWindow = App.Services.GetRequiredService<PioneerNoteWindow>();
@@ -1067,7 +1068,7 @@ public partial class PlayerWindow : Window
                         pioneerNoteWindow.Show();
                         return;
 
-                    case ExitRecordPrompt.PromptResult.QuickRecord:
+                    case PromptResult.QuickRecord:
                         // 取消退出，打开记录笔记对话框
                         e.Cancel = true;
                         var recordDialog = dialogFactory.CreateRecordNoteDialog(currentUrl, currentTitle);
@@ -1075,7 +1076,7 @@ public partial class PlayerWindow : Window
                         recordDialog.ShowDialog();
                         return;
 
-                    case ExitRecordPrompt.PromptResult.Exit:
+                    case PromptResult.Exit:
                     default:
                         // 继续退出
                         break;

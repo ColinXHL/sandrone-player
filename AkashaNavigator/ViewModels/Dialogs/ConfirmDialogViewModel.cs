@@ -37,12 +37,12 @@ namespace AkashaNavigator.ViewModels.Dialogs
         /// <summary>
         /// 对话框结果：true=确定，false=取消，null=关闭按钮
         /// </summary>
-        public bool? Result { get; private set; } = null;
+        public bool? DialogResult { get; private set; } = null;
 
         /// <summary>
-        /// 对话框请求关闭事件
+        /// 请求关闭对话框事件
         /// </summary>
-        public event EventHandler? CloseRequested;
+        public event EventHandler? RequestClose;
 
         /// <summary>
         /// 构造函数
@@ -65,8 +65,8 @@ namespace AkashaNavigator.ViewModels.Dialogs
         [RelayCommand]
         private void Confirm()
         {
-            Result = true;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            DialogResult = true;
+            RequestClose?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -75,8 +75,8 @@ namespace AkashaNavigator.ViewModels.Dialogs
         [RelayCommand]
         private void Cancel()
         {
-            Result = false;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            DialogResult = false;
+            RequestClose?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -85,8 +85,8 @@ namespace AkashaNavigator.ViewModels.Dialogs
         [RelayCommand]
         private void Close()
         {
-            Result = false;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            DialogResult = false;
+            RequestClose?.Invoke(this, EventArgs.Empty);
         }
     }
 }

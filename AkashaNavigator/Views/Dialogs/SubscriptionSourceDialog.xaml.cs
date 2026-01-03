@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
+using AkashaNavigator.Helpers;
 using AkashaNavigator.ViewModels.Dialogs;
 
 namespace AkashaNavigator.Views.Dialogs
@@ -8,7 +9,7 @@ namespace AkashaNavigator.Views.Dialogs
     /// <summary>
     /// 订阅源管理对话框
     /// </summary>
-    public partial class SubscriptionSourceDialog : Window
+    public partial class SubscriptionSourceDialog : AnimatedWindow
     {
         private readonly SubscriptionSourceDialogViewModel _viewModel;
 

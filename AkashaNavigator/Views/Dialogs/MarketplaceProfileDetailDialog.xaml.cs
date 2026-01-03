@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
+using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Profile;
 using AkashaNavigator.ViewModels.Dialogs;
 
@@ -9,7 +10,7 @@ namespace AkashaNavigator.Views.Dialogs
     /// <summary>
     /// 市场 Profile 详情对话框
     /// </summary>
-    public partial class MarketplaceProfileDetailDialog : Window
+    public partial class MarketplaceProfileDetailDialog : AnimatedWindow
     {
         private readonly MarketplaceProfileDetailDialogViewModel _viewModel;
 
@@ -30,27 +31,24 @@ namespace AkashaNavigator.Views.Dialogs
             _viewModel.Initialize(profile);
 
             // 订阅关闭请求事件
-            _viewModel.CloseRequested += OnCloseRequested;
+            _viewModel.RequestClose += OnRequestClose;
         }
 
         /// <summary>
         /// 标题栏拖动
         /// </summary>
-        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private new void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ClickCount == 1)
-            {
-                DragMove();
-            }
+            base.TitleBar_MouseLeftButtonDown(sender, e);
         }
 
         /// <summary>
         /// 处理 ViewModel 的关闭请求
         /// </summary>
-        private void OnCloseRequested(object? sender, EventArgs e)
+        private void OnRequestClose(object? sender, bool? dialogResult)
         {
-            ShouldInstall = _viewModel.DialogResult == true;
-            DialogResult = _viewModel.DialogResult;
+            ShouldInstall = dialogResult == true;
+            DialogResult = dialogResult;
             Close();
         }
     }

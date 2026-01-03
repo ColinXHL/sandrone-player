@@ -32,17 +32,14 @@ namespace AkashaNavigator.Services
         }
 
         /// <summary>
-        /// 创建 Profile 选择器对话框
+        /// 创建 Profile 选择器对话框（带 ViewModel）
         /// </summary>
         /// <param name="pluginId">插件ID</param>
         public ProfileSelectorDialog CreateProfileSelectorDialog(string pluginId)
         {
-            var profileManager = _serviceProvider.GetRequiredService<IProfileManager>();
-            var pluginAssociationManager = _serviceProvider.GetRequiredService<IPluginAssociationManager>();
-            var notificationService = _serviceProvider.GetRequiredService<INotificationService>();
-            var logService = _serviceProvider.GetRequiredService<ILogService>();
-
-            return new ProfileSelectorDialog(profileManager, pluginAssociationManager, notificationService, logService, pluginId);
+            var viewModel = _serviceProvider.GetRequiredService<ProfileSelectorDialogViewModel>();
+            viewModel.Initialize(pluginId);
+            return new ProfileSelectorDialog(viewModel);
         }
 
         /// <summary>
@@ -57,15 +54,17 @@ namespace AkashaNavigator.Services
         }
 
         /// <summary>
-        /// 创建退出记录提示对话框
+        /// 创建退出记录提示对话框（带 ViewModel）
         /// </summary>
         /// <param name="url">页面URL</param>
         /// <param name="title">页面标题</param>
         public ExitRecordPrompt CreateExitRecordPrompt(string url, string title)
         {
+            var viewModel = _serviceProvider.GetRequiredService<ExitRecordPromptViewModel>();
             var pioneerNoteService = _serviceProvider.GetRequiredService<IPioneerNoteService>();
 
-            return new ExitRecordPrompt(pioneerNoteService, url, title);
+            viewModel.Initialize(url, title);
+            return new ExitRecordPrompt(viewModel, pioneerNoteService);
         }
 
         /// <summary>

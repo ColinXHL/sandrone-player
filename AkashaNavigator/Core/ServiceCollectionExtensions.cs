@@ -166,6 +166,12 @@ namespace AkashaNavigator.Core
             // SubscriptionSourceDialog（依赖SubscriptionSourceDialogViewModel）
             services.AddTransient<SubscriptionSourceDialogViewModel>();
 
+            // ExitRecordPrompt（依赖ExitRecordPromptViewModel）
+            services.AddTransient<ExitRecordPromptViewModel>();
+
+            // ProfileSelectorDialog（依赖ProfileSelectorDialogViewModel）
+            services.AddTransient<ProfileSelectorDialogViewModel>();
+
             // UninstallConfirmDialog（依赖UninstallConfirmDialogViewModel）
             services.AddTransient<UninstallConfirmDialogViewModel>();
 
@@ -188,13 +194,11 @@ namespace AkashaNavigator.Core
 
             // SubscriptionSourceDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // ProfileSelectorDialog（依赖IProfileManager, IPluginAssociationManager, INotificationService, ILogService）
-            services.AddTransient<ProfileSelectorDialog>();
+            // ProfileSelectorDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
             // UninstallConfirmDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // ExitRecordPrompt（依赖IPioneerNoteService）
-            services.AddTransient<ExitRecordPrompt>();
+            // ExitRecordPrompt 已迁移到 MVVM，通过 DialogFactory 创建
 
             // PluginUpdatePromptDialog 已迁移到 MVVM，通过 DialogFactory 创建
 

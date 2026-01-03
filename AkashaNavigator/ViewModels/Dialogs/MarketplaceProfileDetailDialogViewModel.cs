@@ -76,9 +76,9 @@ namespace AkashaNavigator.ViewModels.Dialogs
         public ObservableCollection<PluginStatusItem> PluginList { get; } = new();
 
         /// <summary>
-        /// 对话框请求关闭事件
+        /// 请求关闭对话框事件
         /// </summary>
-        public event EventHandler? CloseRequested;
+        public event EventHandler<bool?>? RequestClose;
 
         /// <summary>
         /// 构造函数
@@ -136,7 +136,7 @@ namespace AkashaNavigator.ViewModels.Dialogs
         private void Install()
         {
             DialogResult = true;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            RequestClose?.Invoke(this, DialogResult);
         }
 
         /// <summary>
@@ -146,7 +146,7 @@ namespace AkashaNavigator.ViewModels.Dialogs
         private void Cancel()
         {
             DialogResult = false;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            RequestClose?.Invoke(this, DialogResult);
         }
 
         /// <summary>
@@ -156,7 +156,7 @@ namespace AkashaNavigator.ViewModels.Dialogs
         private void Close()
         {
             DialogResult = false;
-            CloseRequested?.Invoke(this, EventArgs.Empty);
+            RequestClose?.Invoke(this, DialogResult);
         }
     }
 
