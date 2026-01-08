@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:helpers="clr-namespace:AkashaNavigator.Helpers"
         xmlns:pages="clr-namespace:AkashaNavigator.Views.Pages"
+        xmlns:viewModels="clr-namespace:AkashaNavigator.ViewModels.Windows"
         Title="插件中心"
         Width="900"
         Height="650"
@@ -48,25 +49,28 @@
                         <!-- Profile 管理分组 -->
                         <TextBlock Text="Profile 管理" Foreground="#666" FontSize="11" FontWeight="SemiBold"
                                    Margin="12,0,0,8"/>
-                        <RadioButton x:Name="NavMyProfiles" Content="📋 我的 Profile" 
+                        <RadioButton x:Name="NavMyProfiles" Content="📋 我的 Profile"
                                      Style="{StaticResource NavRadioButtonStyle}"
-                                     IsChecked="True"
-                                     Checked="NavButton_Checked"/>
-                        <RadioButton x:Name="NavProfileMarket" Content="🛒 Profile 市场" 
+                                     Command="{Binding NavigateToMyProfilesCommand}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static viewModels:PluginCenterPageType.MyProfiles}}"/>
+                        <RadioButton x:Name="NavProfileMarket" Content="🛒 Profile 市场"
                                      Style="{StaticResource NavRadioButtonStyle}"
-                                     Checked="NavButton_Checked"/>
+                                     Command="{Binding NavigateToProfileMarketCommand}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static viewModels:PluginCenterPageType.ProfileMarket}}"/>
 
                         <Border Style="{StaticResource NavSeparatorStyle}"/>
 
                         <!-- 插件管理分组 -->
                         <TextBlock Text="插件管理" Foreground="#666" FontSize="11" FontWeight="SemiBold"
                                    Margin="12,0,0,8"/>
-                        <RadioButton x:Name="NavInstalledPlugins" Content="📦 已安装插件" 
+                        <RadioButton x:Name="NavInstalledPlugins" Content="📦 已安装插件"
                                      Style="{StaticResource NavRadioButtonStyle}"
-                                     Checked="NavButton_Checked"/>
-                        <RadioButton x:Name="NavAvailablePlugins" Content="🔍 可用插件" 
+                                     Command="{Binding NavigateToInstalledPluginsCommand}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static viewModels:PluginCenterPageType.InstalledPlugins}}"/>
+                        <RadioButton x:Name="NavAvailablePlugins" Content="🔍 可用插件"
                                      Style="{StaticResource NavRadioButtonStyle}"
-                                     Checked="NavButton_Checked"/>
+                                     Command="{Binding NavigateToAvailablePluginsCommand}"
+                                     IsChecked="{Binding CurrentPage, Converter={StaticResource EnumToBoolConverter}, ConverterParameter={x:Static viewModels:PluginCenterPageType.AvailablePlugins}}"/>
                     </StackPanel>
                 </Border>
 

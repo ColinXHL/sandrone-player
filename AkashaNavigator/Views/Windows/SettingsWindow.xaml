@@ -7,7 +7,8 @@
         Height="580"
         WindowStartupLocation="CenterScreen"
         Foreground="White"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        DataContext="{Binding}">
 
     <!-- 主容器带边框 -->
     <Border x:Name="MainContainer" Background="#1E1E1E" BorderBrush="#333" BorderThickness="1" CornerRadius="8"
@@ -46,6 +47,8 @@
                         <ComboBox x:Name="ProfileComboBox" Grid.Column="0"
                                   Style="{StaticResource DarkComboBoxStyle}"
                                   ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                                  ItemsSource="{Binding Profiles}"
+                                  SelectedItem="{Binding SelectedProfile}"
                                   SelectionChanged="ProfileComboBox_SelectionChanged">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
@@ -57,16 +60,16 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <Button x:Name="BtnUnsubscribeProfile" Grid.Column="1" Content="取消订阅" 
+                        <Button x:Name="BtnUnsubscribeProfile" Grid.Column="1" Content="取消订阅"
                                 Style="{StaticResource DangerButtonStyle}"
                                 Margin="8,0,0,0"
-                                Click="BtnUnsubscribeProfile_Click"/>
+                                Command="{Binding UnsubscribeProfileCommand}"/>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                         <Button Content="📂 打开配置文件夹" Style="{StaticResource ActionButtonStyle}"
                                 HorizontalAlignment="Left" Margin="0,0,8,0" Click="BtnOpenConfigFolder_Click"/>
                         <Button Content="🔌 打开插件中心" Style="{StaticResource PrimaryButtonStyle}"
-                                HorizontalAlignment="Left" Click="BtnOpenPluginCenter_Click"/>
+                                HorizontalAlignment="Left" Command="{Binding OpenPluginCenterCommand}"/>
                     </StackPanel>
 
                     <!-- 基础设置 -->
@@ -83,6 +86,7 @@
                         <Slider x:Name="SeekSecondsSlider" Grid.Column="1"
                                 Style="{StaticResource DarkSliderStyle}"
                                 Minimum="1" Maximum="30" TickFrequency="1" IsSnapToTickEnabled="True"
+                                Value="{Binding SeekSeconds}"
                                 ValueChanged="SeekSecondsSlider_ValueChanged"/>
                         <TextBlock x:Name="SeekSecondsValue" Grid.Column="2" Text="5s"
                                    Style="{StaticResource SettingsLabelStyle}" HorizontalAlignment="Right"/>
@@ -99,6 +103,7 @@
                         <Slider x:Name="OpacitySlider" Grid.Column="1"
                                 Style="{StaticResource DarkSliderStyle}"
                                 Minimum="20" Maximum="100" TickFrequency="10" IsSnapToTickEnabled="True"
+                                Value="{Binding OpacityPercent}"
                                 ValueChanged="OpacitySlider_ValueChanged"/>
                         <TextBlock x:Name="OpacityValue" Grid.Column="2" Text="100%"
                                    Style="{StaticResource SettingsLabelStyle}" HorizontalAlignment="Right"/>
@@ -107,7 +112,8 @@
                     <!-- 窗口行为 -->
                     <TextBlock Text="窗口行为" Style="{StaticResource SettingsGroupHeaderStyle}"/>
                     <CheckBox x:Name="EdgeSnapCheckBox" Content="启用边缘吸附"
-                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,12"/>
+                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,12"
+                              IsChecked="{Binding EnableEdgeSnap}"/>
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="100"/>
@@ -118,21 +124,25 @@
                         <Slider x:Name="SnapThresholdSlider" Grid.Column="1"
                                 Style="{StaticResource DarkSliderStyle}"
                                 Minimum="5" Maximum="30" TickFrequency="5" IsSnapToTickEnabled="True"
+                                Value="{Binding SnapThreshold}"
                                 ValueChanged="SnapThresholdSlider_ValueChanged"/>
                         <TextBlock x:Name="SnapThresholdValue" Grid.Column="2" Text="15px"
                                    Style="{StaticResource SettingsLabelStyle}" HorizontalAlignment="Right"/>
                     </Grid>
                     <CheckBox x:Name="PromptRecordOnExitCheckBox" Content="退出时提示记录"
-                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,12"/>
+                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,12"
+                              IsChecked="{Binding PromptRecordOnExit}"/>
 
                     <!-- 高级设置 -->
                     <TextBlock Text="高级设置" Style="{StaticResource SettingsGroupHeaderStyle}"/>
                     <CheckBox x:Name="EnablePluginUpdateNotificationCheckBox" Content="启动时提示插件更新"
-                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,4"/>
-                    <TextBlock Text="开启后，启动时如有插件可更新会弹窗提示" 
+                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,4"
+                              IsChecked="{Binding EnablePluginUpdateNotification}"/>
+                    <TextBlock Text="开启后，启动时如有插件可更新会弹窗提示"
                                Foreground="#666" FontSize="11" Margin="0,0,0,12"/>
                     <CheckBox x:Name="EnableDebugLogCheckBox" Content="启用调试日志"
-                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,4"/>
+                              Style="{StaticResource DarkCheckBoxStyle}" Margin="0,0,0,4"
+                              IsChecked="{Binding EnableDebugLog}"/>
                     <TextBlock Text="开启后日志文件将包含详细的调试信息，用于排查问题" 
                                Foreground="#666" FontSize="11" Margin="0,0,0,12"/>
 
@@ -217,12 +227,12 @@
             <Border Grid.Row="2" Background="#252525" Padding="16,10" CornerRadius="0,0,8,8">
                 <Grid>
                     <Button Content="重置" Style="{StaticResource SecondaryButtonStyle}"
-                            HorizontalAlignment="Left" Click="BtnReset_Click"/>
+                            HorizontalAlignment="Left" Command="{Binding ResetCommand}"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="取消" Style="{StaticResource SecondaryButtonStyle}"
                                 Margin="0,0,8,0" Click="BtnCancel_Click"/>
                         <Button Content="保存" Style="{StaticResource PrimaryButtonStyle}"
-                                Click="BtnSave_Click"/>
+                                Command="{Binding SaveCommand}" Click="BtnSave_Click"/>
                     </StackPanel>
                 </Grid>
             </Border>

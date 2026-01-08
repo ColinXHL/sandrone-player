@@ -122,7 +122,7 @@ namespace AkashaNavigator.Core
             _playerWindow.Dispatcher.BeginInvoke(
                 new Action(() =>
                 {
-                    var pluginCenterWindow = new PluginCenterWindow();
+                    var pluginCenterWindow = _serviceProvider.GetRequiredService<PluginCenterWindow>();
                     pluginCenterWindow.Owner = _playerWindow;
                     // 导航到已安装插件页面
                     pluginCenterWindow.NavigateToInstalledPlugins();

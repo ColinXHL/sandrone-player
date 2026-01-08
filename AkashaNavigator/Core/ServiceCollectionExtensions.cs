@@ -114,6 +114,18 @@ namespace AkashaNavigator.Core
             // ControlBarViewModel（依赖 EventBus）
             services.AddTransient<ControlBarViewModel>();
 
+            // HistoryWindowViewModel（依赖 DataService）
+            services.AddTransient<HistoryWindowViewModel>();
+
+            // SettingsViewModel（依赖 ConfigService + ProfileManager + EventBus）
+            services.AddTransient<SettingsViewModel>();
+
+            // PluginCenterViewModel（依赖 4 个 Page）
+            services.AddTransient<PluginCenterViewModel>();
+
+            // PioneerNoteViewModel（依赖 IPioneerNoteService）
+            services.AddTransient<PioneerNoteViewModel>();
+
             // ============================================================
             // 窗口（Transient，每次请求创建新实例）
             // ============================================================
@@ -121,7 +133,8 @@ namespace AkashaNavigator.Core
             // PlayerWindow（依赖所有服务）
             services.AddTransient<PlayerWindow>();
 
-            // SettingsWindow（依赖IConfigService, IProfileManager, INotificationService）
+            // SettingsWindow（依赖 SettingsViewModel + NotificationService）
+            // 依赖链：SettingsWindow → SettingsViewModel → (ConfigService, ProfileManager, EventBus)
             services.AddTransient<SettingsWindow>();
 
             // MyProfilesPage（依赖MyProfilesPageViewModel）
@@ -147,7 +160,8 @@ namespace AkashaNavigator.Core
                 };
             });
 
-            // HistoryWindow（依赖IDataService）
+            // HistoryWindow（依赖 HistoryWindowViewModel）
+            // 依赖链：HistoryWindow → HistoryWindowViewModel → DataService
             services.AddTransient<HistoryWindow>();
 
             // BookmarkPopup（依赖BookmarkPopupViewModel）
@@ -199,7 +213,8 @@ namespace AkashaNavigator.Core
                 };
             });
 
-            // PioneerNoteWindow（依赖IPioneerNoteService）
+            // PioneerNoteWindow（依赖 PioneerNoteViewModel + IDialogFactory）
+            // 依赖链：PioneerNoteWindow → (PioneerNoteViewModel, IDialogFactory)
             services.AddTransient<PioneerNoteWindow>();
 
             // ============================================================
@@ -230,6 +245,10 @@ namespace AkashaNavigator.Core
             // ProfileMarketPage（依赖ProfileMarketPageViewModel）
             services.AddTransient<ProfileMarketPageViewModel>();
             services.AddTransient<ProfileMarketPage>();
+
+            // PluginCenterWindow（依赖 PluginCenterViewModel）
+            // 依赖链：PluginCenterWindow → PluginCenterViewModel → 4×Page
+            services.AddTransient<PluginCenterWindow>();
 
             return services;
         }

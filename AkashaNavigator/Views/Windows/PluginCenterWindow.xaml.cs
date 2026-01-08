@@ -2,160 +2,102 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using Microsoft.Extensions.DependencyInjection;
 using AkashaNavigator.Helpers;
-using AkashaNavigator.Views.Pages;
+using AkashaNavigator.ViewModels.Windows;
 
 namespace AkashaNavigator.Views.Windows
 {
-/// <summary>
-/// 插件中心窗口 - 统一管理所有插件的安装、卸载和配置
-/// </summary>
-public partial class PluginCenterWindow : AnimatedWindow
-{
-    private MyProfilesPage _myProfilesPage = null!;
-    private ProfileMarketPage _profileMarketPage = null!;
-    private InstalledPluginsPage _installedPluginsPage = null!;
-    private AvailablePluginsPage _availablePluginsPage = null!;
-
-    public PluginCenterWindow()
-    {
-        InitializeComponent();
-
-        // 通过 DI 创建 Pages 并添加到 ContentArea
-        LoadPages();
-    }
-
     /// <summary>
-    /// 加载所有 Pages
+    /// 插件中心窗口 - 统一管理所有插件的安装、卸载和配置
     /// </summary>
-    private void LoadPages()
+    public partial class PluginCenterWindow : AnimatedWindow
     {
-        var serviceProvider = App.Services;
+        private readonly PluginCenterViewModel _viewModel;
 
-        _myProfilesPage = serviceProvider.GetRequiredService<MyProfilesPage>();
-        _profileMarketPage = serviceProvider.GetRequiredService<ProfileMarketPage>();
-        _installedPluginsPage = serviceProvider.GetRequiredService<InstalledPluginsPage>();
-        _availablePluginsPage = serviceProvider.GetRequiredService<AvailablePluginsPage>();
-
-        ContentArea.Children.Add(_myProfilesPage);
-        ContentArea.Children.Add(_profileMarketPage);
-        ContentArea.Children.Add(_installedPluginsPage);
-        ContentArea.Children.Add(_availablePluginsPage);
-
-        // 默认显示我的 Profile 页面
-        ShowMyProfiles();
-    }
-
-    /// <summary>
-    /// 显示我的 Profile 页面
-    /// </summary>
-    private void ShowMyProfiles()
-    {
-        _myProfilesPage.Visibility = Visibility.Visible;
-        _profileMarketPage.Visibility = Visibility.Collapsed;
-        _installedPluginsPage.Visibility = Visibility.Collapsed;
-        _availablePluginsPage.Visibility = Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// 标题栏拖动
-    /// </summary>
-    private new void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ClickCount == 2)
+        public PluginCenterWindow(PluginCenterViewModel viewModel)
         {
-            // 双击切换最大化/还原
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        }
-        else
-        {
-            DragMove();
-        }
-    }
+            _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            InitializeComponent();
+            DataContext = _viewModel;
 
-    /// <summary>
-    /// 关闭按钮点击
-    /// </summary>
-    private void BtnClose_Click(object sender, RoutedEventArgs e)
-    {
-        Close();
-    }
+            LoadPages();
+            UpdatePageVisibility(_viewModel.CurrentPage);
 
-    /// <summary>
-    /// 导航按钮切换
-    /// </summary>
-    private void NavButton_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is not RadioButton radioButton)
-            return;
-
-        // 防止在 InitializeComponent 期间触发（控件尚未初始化）
-        if (_installedPluginsPage == null)
-            return;
-
-        // 隐藏所有页面
-        _installedPluginsPage.Visibility = Visibility.Collapsed;
-        _availablePluginsPage.Visibility = Visibility.Collapsed;
-        _myProfilesPage.Visibility = Visibility.Collapsed;
-        _profileMarketPage.Visibility = Visibility.Collapsed;
-
-        // 根据选中的导航按钮显示对应页面
-        if (radioButton == NavInstalledPlugins)
-        {
-            _installedPluginsPage.Visibility = Visibility.Visible;
-            _installedPluginsPage.CheckAndRefreshPluginList();
-        }
-        else if (radioButton == NavAvailablePlugins)
-        {
-            _availablePluginsPage.Visibility = Visibility.Visible;
-            _availablePluginsPage.RefreshPluginList();
-        }
-        else if (radioButton == NavMyProfiles)
-        {
-            _myProfilesPage.Visibility = Visibility.Visible;
-            _myProfilesPage.RefreshProfileList();
-        }
-        else if (radioButton == NavProfileMarket)
-        {
-            _profileMarketPage.Visibility = Visibility.Visible;
-            var vm = _profileMarketPage.DataContext as ViewModels.Pages.ProfileMarketPageViewModel;
-            if (vm != null)
+            // 订阅 ViewModel 的 PropertyChanged 事件，处理页面显示切换
+            _viewModel.PropertyChanged += (s, e) =>
             {
-                _ = vm.LoadProfilesAsync();
+                if (e.PropertyName == nameof(_viewModel.CurrentPage))
+                {
+                    UpdatePageVisibility(_viewModel.CurrentPage);
+                }
+            };
+        }
+
+        /// <summary>
+        /// 加载所有 Pages
+        /// </summary>
+        private void LoadPages()
+        {
+            ContentArea.Children.Add(_viewModel.MyProfilesPage);
+            ContentArea.Children.Add(_viewModel.ProfileMarketPage);
+            ContentArea.Children.Add(_viewModel.InstalledPluginsPage);
+            ContentArea.Children.Add(_viewModel.AvailablePluginsPage);
+        }
+
+        /// <summary>
+        /// UI 逻辑：页面显示切换（保留在 Code-behind，因为涉及 Visibility 操作）
+        /// </summary>
+        private void UpdatePageVisibility(PluginCenterPageType currentPage)
+        {
+            _viewModel.MyProfilesPage.Visibility = currentPage == PluginCenterPageType.MyProfiles
+                ? Visibility.Visible : Visibility.Collapsed;
+            _viewModel.ProfileMarketPage.Visibility = currentPage == PluginCenterPageType.ProfileMarket
+                ? Visibility.Visible : Visibility.Collapsed;
+            _viewModel.InstalledPluginsPage.Visibility = currentPage == PluginCenterPageType.InstalledPlugins
+                ? Visibility.Visible : Visibility.Collapsed;
+            _viewModel.AvailablePluginsPage.Visibility = currentPage == PluginCenterPageType.AvailablePlugins
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// UI 逻辑：标题栏拖动（保持不变）
+        /// </summary>
+        private new void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                WindowState = WindowState == WindowState.Maximized
+                    ? WindowState.Normal
+                    : WindowState.Maximized;
+            }
+            else
+            {
+                DragMove();
             }
         }
-    }
 
-    /// <summary>
-    /// 刷新当前页面
-    /// </summary>
-    public void RefreshCurrentPage()
-    {
-        if (NavInstalledPlugins.IsChecked == true)
+        /// <summary>
+        /// UI 逻辑：关闭按钮（保持不变）
+        /// </summary>
+        private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
-            _installedPluginsPage?.CheckAndRefreshPluginList();
+            Close();
         }
-        else if (NavAvailablePlugins.IsChecked == true)
+
+        /// <summary>
+        /// 公开方法供外部调用
+        /// </summary>
+        public void NavigateToInstalledPlugins()
         {
-            _availablePluginsPage?.RefreshPluginList();
+            _viewModel.NavigateToInstalledPluginsCommand.Execute(null);
+        }
+
+        /// <summary>
+        /// 刷新当前页面
+        /// </summary>
+        public void RefreshCurrentPage()
+        {
+            _viewModel.RefreshCurrentPage();
         }
     }
-
-    /// <summary>
-    /// 导航到已安装插件页面
-    /// </summary>
-    public void NavigateToInstalledPlugins()
-    {
-        NavInstalledPlugins.IsChecked = true;
-    }
-
-    /// <summary>
-    /// 导航到可用插件页面
-    /// </summary>
-    public void NavigateToAvailablePlugins()
-    {
-        NavAvailablePlugins.IsChecked = true;
-    }
-}
 }

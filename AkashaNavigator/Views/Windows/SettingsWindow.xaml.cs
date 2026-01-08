@@ -8,27 +8,24 @@ using System.Windows.Input;
 using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Config;
 using AkashaNavigator.Models.Profile;
-using AkashaNavigator.Services;
+using AkashaNavigator.ViewModels.Windows;
 using AkashaNavigator.Core.Interfaces;
 using HotkeyModifierKeys = AkashaNavigator.Models.Config.ModifierKeys;
 
 namespace AkashaNavigator.Views.Windows
 {
 /// <summary>
-/// SettingsWindow - 设置窗口
+/// SettingsWindow - 设置窗口（混合架构）
 /// </summary>
 public partial class SettingsWindow : AnimatedWindow
 {
 #region Fields
 
-    private readonly IConfigService _configService;
-    private readonly IProfileManager _profileManager;
+    private readonly SettingsViewModel _viewModel;
     private readonly INotificationService _notificationService;
-    private AppConfig _config;
     private bool _isInitializing = true;
     private TextBox? _currentHotkeyTextBox;
-    private readonly Dictionary<TextBox, uint> _hotkeyValues = new();
-    private readonly Dictionary<TextBox, HotkeyModifierKeys> _hotkeyModifiers = new();
+    private readonly Dictionary<TextBox, string> _hotkeyTextBoxToKeyMap = new();
     private ImeHelper.ImeState _savedImeState;
 
 #endregion
@@ -36,17 +33,24 @@ public partial class SettingsWindow : AnimatedWindow
 #region Constructor
 
     public SettingsWindow(
-        IConfigService configService,
-        IProfileManager profileManager,
+        SettingsViewModel viewModel,
         INotificationService notificationService)
     {
-        _configService = configService;
-        _profileManager = profileManager;
-        _notificationService = notificationService;
+        _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
 
         InitializeComponent();
-        _config = _configService.Config;
-        LoadSettings();
+        DataContext = _viewModel;
+
+        // 订阅 ViewModel 事件
+        _viewModel.OpenConfigFolderRequested += OnOpenConfigFolder;
+
+        // 初始化快捷键映射
+        InitHotkeyMapping();
+
+        // 加载 Profile 列表
+        _viewModel.LoadProfileList();
+
         _isInitializing = false;
     }
 
@@ -55,90 +59,39 @@ public partial class SettingsWindow : AnimatedWindow
 #region Private Methods
 
     /// <summary>
-    /// 加载设置到 UI
+    /// 初始化快捷键输入框映射
     /// </summary>
-    private void LoadSettings()
+    private void InitHotkeyMapping()
     {
-        // 基础设置
-        SeekSecondsSlider.Value = _config.SeekSeconds;
-        SeekSecondsValue.Text = $"{_config.SeekSeconds}s";
-        OpacitySlider.Value = _config.DefaultOpacity * 100;
-        OpacityValue.Text = $"{(int)(_config.DefaultOpacity * 100)}%";
+        _hotkeyTextBoxToKeyMap[HotkeySeekBackward] = "SeekBackward";
+        _hotkeyTextBoxToKeyMap[HotkeySeekForward] = "SeekForward";
+        _hotkeyTextBoxToKeyMap[HotkeyTogglePlay] = "TogglePlay";
+        _hotkeyTextBoxToKeyMap[HotkeyDecreaseOpacity] = "DecreaseOpacity";
+        _hotkeyTextBoxToKeyMap[HotkeyIncreaseOpacity] = "IncreaseOpacity";
+        _hotkeyTextBoxToKeyMap[HotkeyToggleClickThrough] = "ToggleClickThrough";
+        _hotkeyTextBoxToKeyMap[HotkeyToggleMaximize] = "ToggleMaximize";
 
-        // 窗口行为
-        EdgeSnapCheckBox.IsChecked = _config.EnableEdgeSnap;
-        SnapThresholdSlider.Value = _config.SnapThreshold;
-        SnapThresholdValue.Text = $"{_config.SnapThreshold}px";
-        PromptRecordOnExitCheckBox.IsChecked = _config.PromptRecordOnExit;
-
-        // 高级设置
-        EnablePluginUpdateNotificationCheckBox.IsChecked = _config.EnablePluginUpdateNotification;
-        EnableDebugLogCheckBox.IsChecked = _config.EnableDebugLog;
-
-        // 快捷键
-        LoadHotkey(HotkeySeekBackward, _config.HotkeySeekBackward, _config.HotkeySeekBackwardMod);
-        LoadHotkey(HotkeySeekForward, _config.HotkeySeekForward, _config.HotkeySeekForwardMod);
-        LoadHotkey(HotkeyTogglePlay, _config.HotkeyTogglePlay, _config.HotkeyTogglePlayMod);
-        LoadHotkey(HotkeyDecreaseOpacity, _config.HotkeyDecreaseOpacity, _config.HotkeyDecreaseOpacityMod);
-        LoadHotkey(HotkeyIncreaseOpacity, _config.HotkeyIncreaseOpacity, _config.HotkeyIncreaseOpacityMod);
-        LoadHotkey(HotkeyToggleClickThrough, _config.HotkeyToggleClickThrough, _config.HotkeyToggleClickThroughMod);
-        LoadHotkey(HotkeyToggleMaximize, _config.HotkeyToggleMaximize, _config.HotkeyToggleMaximizeMod);
-
-        // 配置 (Profile)
-        LoadProfileList();
+        // 加载快捷键显示
+        foreach (var (textBox, key) in _hotkeyTextBoxToKeyMap)
+        {
+            var vkCode = _viewModel.HotkeyValues[key];
+            var modifiers = _viewModel.HotkeyModifiers[key];
+            textBox.Text = Win32Helper.GetHotkeyDisplayName(vkCode, modifiers);
+        }
     }
 
     /// <summary>
-    /// 加载单个快捷键到输入框
+    /// 获取快捷键显示名称
     /// </summary>
-    private void LoadHotkey(TextBox textBox, uint vkCode, HotkeyModifierKeys modifiers)
+    private string GetHotkeyDisplayName(TextBox textBox)
     {
-        textBox.Text = Win32Helper.GetHotkeyDisplayName(vkCode, modifiers);
-        _hotkeyValues[textBox] = vkCode;
-        _hotkeyModifiers[textBox] = modifiers;
-    }
-
-    /// <summary>
-    /// 从 UI 读取设置
-    /// </summary>
-    private void SaveSettingsToConfig()
-    {
-        // 基础设置
-        _config.SeekSeconds = (int)SeekSecondsSlider.Value;
-        _config.DefaultOpacity = OpacitySlider.Value / 100.0;
-
-        // 窗口行为
-        _config.EnableEdgeSnap = EdgeSnapCheckBox.IsChecked ?? true;
-        _config.SnapThreshold = (int)SnapThresholdSlider.Value;
-        _config.PromptRecordOnExit = PromptRecordOnExitCheckBox.IsChecked ?? false;
-
-        // 高级设置
-        _config.EnablePluginUpdateNotification = EnablePluginUpdateNotificationCheckBox.IsChecked ?? true;
-        _config.EnableDebugLog = EnableDebugLogCheckBox.IsChecked ?? false;
-
-        // 快捷键
-        SaveHotkey(HotkeySeekBackward, v => _config.HotkeySeekBackward = v, m => _config.HotkeySeekBackwardMod = m);
-        SaveHotkey(HotkeySeekForward, v => _config.HotkeySeekForward = v, m => _config.HotkeySeekForwardMod = m);
-        SaveHotkey(HotkeyTogglePlay, v => _config.HotkeyTogglePlay = v, m => _config.HotkeyTogglePlayMod = m);
-        SaveHotkey(HotkeyDecreaseOpacity, v => _config.HotkeyDecreaseOpacity = v,
-                   m => _config.HotkeyDecreaseOpacityMod = m);
-        SaveHotkey(HotkeyIncreaseOpacity, v => _config.HotkeyIncreaseOpacity = v,
-                   m => _config.HotkeyIncreaseOpacityMod = m);
-        SaveHotkey(HotkeyToggleClickThrough, v => _config.HotkeyToggleClickThrough = v,
-                   m => _config.HotkeyToggleClickThroughMod = m);
-        SaveHotkey(HotkeyToggleMaximize, v => _config.HotkeyToggleMaximize = v,
-                   m => _config.HotkeyToggleMaximizeMod = m);
-    }
-
-    /// <summary>
-    /// 保存单个快捷键
-    /// </summary>
-    private void SaveHotkey(TextBox textBox, Action<uint> setKey, Action<HotkeyModifierKeys> setMod)
-    {
-        if (_hotkeyValues.TryGetValue(textBox, out var vk))
-            setKey(vk);
-        if (_hotkeyModifiers.TryGetValue(textBox, out var mod))
-            setMod(mod);
+        if (_hotkeyTextBoxToKeyMap.TryGetValue(textBox, out var key))
+        {
+            var vkCode = _viewModel.HotkeyValues[key];
+            var modifiers = _viewModel.HotkeyModifiers[key];
+            return Win32Helper.GetHotkeyDisplayName(vkCode, modifiers);
+        }
+        return string.Empty;
     }
 
 #endregion
@@ -154,41 +107,40 @@ public partial class SettingsWindow : AnimatedWindow
     }
 
     /// <summary>
-    /// 快进秒数滑块值变化
+    /// 快进秒数滑块值变化（保留在 Code-behind 用于显示更新）
     /// </summary>
     private void SeekSecondsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_isInitializing)
             return;
-        SeekSecondsValue.Text = $"{(int)SeekSecondsSlider.Value}s";
+        SeekSecondsValue.Text = $"{(int)e.NewValue}s";
     }
 
     /// <summary>
-    /// 透明度滑块值变化
+    /// 透明度滑块值变化（保留在 Code-behind 用于显示更新）
     /// </summary>
     private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_isInitializing)
             return;
-        OpacityValue.Text = $"{(int)OpacitySlider.Value}%";
+        OpacityValue.Text = $"{(int)e.NewValue}%";
     }
 
     /// <summary>
-    /// 吸附阈值滑块值变化
+    /// 吸附阈值滑块值变化（保留在 Code-behind 用于显示更新）
     /// </summary>
     private void SnapThresholdSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_isInitializing)
             return;
-        SnapThresholdValue.Text = $"{(int)SnapThresholdSlider.Value}px";
+        SnapThresholdValue.Text = $"{(int)e.NewValue}px";
     }
 
     /// <summary>
-    /// 打开配置文件夹
+    /// 打开配置文件夹（通过 ViewModel 事件处理）
     /// </summary>
-    private void BtnOpenConfigFolder_Click(object sender, RoutedEventArgs e)
+    private void OnOpenConfigFolder(object? sender, string path)
     {
-        var path = _profileManager.DataDirectory;
         if (Directory.Exists(path))
         {
             Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
@@ -196,56 +148,11 @@ public partial class SettingsWindow : AnimatedWindow
     }
 
     /// <summary>
-    /// 打开插件中心
+    /// 打开配置文件夹按钮点击（备用方案）
     /// </summary>
-    private void BtnOpenPluginCenter_Click(object sender, RoutedEventArgs e)
+    private void BtnOpenConfigFolder_Click(object sender, RoutedEventArgs e)
     {
-        var pluginCenter = new PluginCenterWindow();
-        pluginCenter.Owner = this;
-        pluginCenter.ShowDialog();
-
-        // 插件中心关闭后刷新 Profile 列表（可能有变化）
-        _isInitializing = true;
-        _profileManager.ReloadProfiles();
-        LoadProfileList();
-        _isInitializing = false;
-    }
-
-    /// <summary>
-    /// 重置按钮 - 恢复默认设置
-    /// </summary>
-    private void BtnReset_Click(object sender, RoutedEventArgs e)
-    {
-        _isInitializing = true;
-
-        // 重置基础设置
-        SeekSecondsSlider.Value = AppConstants.DefaultSeekSeconds;
-        SeekSecondsValue.Text = $"{AppConstants.DefaultSeekSeconds}s";
-        OpacitySlider.Value = AppConstants.MaxOpacity * 100;
-        OpacityValue.Text = $"{(int)(AppConstants.MaxOpacity * 100)}%";
-
-        // 重置窗口行为
-        EdgeSnapCheckBox.IsChecked = true;
-        SnapThresholdSlider.Value = AppConstants.SnapThreshold;
-        SnapThresholdValue.Text = $"{AppConstants.SnapThreshold}px";
-        PromptRecordOnExitCheckBox.IsChecked = false;
-
-        // 重置高级设置
-        EnablePluginUpdateNotificationCheckBox.IsChecked = true;
-        EnableDebugLogCheckBox.IsChecked = false;
-
-        // 重置快捷键
-        var defaultConfig = new AppConfig();
-        LoadHotkey(HotkeySeekBackward, defaultConfig.HotkeySeekBackward, defaultConfig.HotkeySeekBackwardMod);
-        LoadHotkey(HotkeySeekForward, defaultConfig.HotkeySeekForward, defaultConfig.HotkeySeekForwardMod);
-        LoadHotkey(HotkeyTogglePlay, defaultConfig.HotkeyTogglePlay, defaultConfig.HotkeyTogglePlayMod);
-        LoadHotkey(HotkeyDecreaseOpacity, defaultConfig.HotkeyDecreaseOpacity, defaultConfig.HotkeyDecreaseOpacityMod);
-        LoadHotkey(HotkeyIncreaseOpacity, defaultConfig.HotkeyIncreaseOpacity, defaultConfig.HotkeyIncreaseOpacityMod);
-        LoadHotkey(HotkeyToggleClickThrough, defaultConfig.HotkeyToggleClickThrough,
-                   defaultConfig.HotkeyToggleClickThroughMod);
-        LoadHotkey(HotkeyToggleMaximize, defaultConfig.HotkeyToggleMaximize, defaultConfig.HotkeyToggleMaximizeMod);
-
-        _isInitializing = false;
+        _viewModel.OpenConfigFolderCommand.Execute(null);
     }
 
     /// <summary>
@@ -258,7 +165,7 @@ public partial class SettingsWindow : AnimatedWindow
             _currentHotkeyTextBox = textBox;
             textBox.Text = "按下新快捷键...";
 
-            // 切换到英文输入模式（需求 2.1）
+            // 切换到英文输入模式
             _savedImeState = ImeHelper.SwitchToEnglish(this);
         }
     }
@@ -268,14 +175,14 @@ public partial class SettingsWindow : AnimatedWindow
     /// </summary>
     private void Hotkey_LostFocus(object sender, RoutedEventArgs e)
     {
-        if (sender is TextBox textBox && _hotkeyValues.TryGetValue(textBox, out var vkCode))
+        if (sender is TextBox textBox)
         {
-            var modifiers = _hotkeyModifiers.TryGetValue(textBox, out var m) ? m : HotkeyModifierKeys.None;
-            textBox.Text = Win32Helper.GetHotkeyDisplayName(vkCode, modifiers);
+            // 恢复显示
+            textBox.Text = GetHotkeyDisplayName(textBox);
         }
         _currentHotkeyTextBox = null;
 
-        // 恢复之前的输入法状态（需求 2.2, 2.3）
+        // 恢复之前的输入法状态
         ImeHelper.RestoreImeState(_savedImeState);
     }
 
@@ -327,8 +234,12 @@ public partial class SettingsWindow : AnimatedWindow
 
         // 更新显示和存储
         textBox.Text = Win32Helper.GetHotkeyDisplayName(vkCode, modifiers);
-        _hotkeyValues[textBox] = vkCode;
-        _hotkeyModifiers[textBox] = modifiers;
+
+        if (_hotkeyTextBoxToKeyMap.TryGetValue(textBox, out var key))
+        {
+            _viewModel.HotkeyValues[key] = vkCode;
+            _viewModel.HotkeyModifiers[key] = modifiers;
+        }
 
         // 移动焦点到下一个控件
         textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
@@ -343,113 +254,23 @@ public partial class SettingsWindow : AnimatedWindow
     }
 
     /// <summary>
-    /// 保存按钮
+    /// 保存按钮（调用 ViewModel 命令后关闭窗口）
     /// </summary>
     private void BtnSave_Click(object sender, RoutedEventArgs e)
     {
-        SaveSettingsToConfig();
-        _configService.UpdateConfig(_config);
+        _viewModel.SaveCommand.Execute(null);
         CloseWithAnimation();
     }
 
     /// <summary>
-    /// 加载 Profile 列表到 ComboBox
-    /// </summary>
-    private void LoadProfileList()
-    {
-        var profiles = _profileManager.InstalledProfiles;
-        ProfileComboBox.ItemsSource = profiles;
-
-        // 选中当前 Profile
-        var currentProfile = _profileManager.CurrentProfile;
-        for (int i = 0; i < profiles.Count; i++)
-        {
-            if (profiles[i].Id.Equals(currentProfile.Id, StringComparison.OrdinalIgnoreCase))
-            {
-                ProfileComboBox.SelectedIndex = i;
-                break;
-            }
-        }
-
-        // 更新取消订阅按钮状态
-        UpdateUnsubscribeButtonState();
-    }
-
-    /// <summary>
-    /// 更新取消订阅按钮状态
-    /// </summary>
-    private void UpdateUnsubscribeButtonState()
-    {
-        if (ProfileComboBox.SelectedItem is GameProfile profile)
-        {
-            // 默认 Profile 不能取消订阅
-            BtnUnsubscribeProfile.IsEnabled = !profile.Id.Equals("default", StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    /// <summary>
-    /// Profile 选择变化
+    /// Profile 选择变化（ViewModel 已通过绑定处理，此方法保留用于扩展）
     /// </summary>
     private void ProfileComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing)
             return;
 
-        if (ProfileComboBox.SelectedItem is GameProfile selectedProfile)
-        {
-            var currentProfile = _profileManager.CurrentProfile;
-
-            // 如果选择了不同的 Profile，切换
-            if (!selectedProfile.Id.Equals(currentProfile.Id, StringComparison.OrdinalIgnoreCase))
-            {
-                _profileManager.SwitchProfile(selectedProfile.Id);
-                Debug.WriteLine($"[Settings] 已切换到配置: {selectedProfile.Name}");
-            }
-
-            // 更新取消订阅按钮状态
-            UpdateUnsubscribeButtonState();
-        }
-    }
-
-    /// <summary>
-    /// 取消订阅 Profile 按钮点击
-    /// </summary>
-    private async void BtnUnsubscribeProfile_Click(object sender, RoutedEventArgs e)
-    {
-        if (ProfileComboBox.SelectedItem is not GameProfile selectedProfile)
-            return;
-
-        // 不能删除默认 Profile
-        if (selectedProfile.Id.Equals("default", StringComparison.OrdinalIgnoreCase))
-        {
-            _notificationService.Info("不能取消订阅默认配置。", "提示");
-            return;
-        }
-
-        // 显示确认对话框
-        var confirmed = await _notificationService.ConfirmAsync(
-            $"确定要取消订阅配置 \"{selectedProfile.Name}\" 吗？\n\n此操作将删除该配置，无法撤销。", "确认取消订阅");
-
-        if (!confirmed)
-            return;
-
-        // 调用 ProfileManager.UnsubscribeProfile
-        var unsubscribeResult = _profileManager.UnsubscribeProfile(selectedProfile.Id);
-
-        if (unsubscribeResult.IsSuccess)
-        {
-            Debug.WriteLine($"[Settings] 配置 {selectedProfile.Id} 已取消订阅");
-
-            // 刷新 Profile 列表
-            _isInitializing = true;
-            LoadProfileList();
-            _isInitializing = false;
-        }
-        else
-        {
-            _notificationService.Error(unsubscribeResult.ErrorMessage ?? "取消订阅失败", "错误");
-            Debug.WriteLine($"[Settings] 取消订阅配置失败: {unsubscribeResult.ErrorMessage}");
-        }
+        // 绑定已处理 Profile 切换，此方法保留用于扩展
     }
 
 #endregion

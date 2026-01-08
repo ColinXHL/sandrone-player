@@ -50,6 +50,7 @@
                              Grid.Column="0"
                              Style="{StaticResource SearchBoxStyle}"
                              Tag="搜索历史记录..."
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              TextChanged="SearchBox_TextChanged"/>
                     <Button Grid.Column="1" Content="清空全部" Style="{StaticResource DeleteButtonStyle}"
                             Margin="10,0,0,0" Click="BtnClearAll_Click"/>
@@ -60,6 +61,7 @@
                     <Grid>
                         <!-- 历史列表 -->
                         <ListBox x:Name="HistoryList" Background="Transparent" BorderThickness="0"
+                                 ItemsSource="{Binding HistoryItems}"
                                  ItemContainerStyle="{StaticResource DarkListBoxItemStyle}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                  MouseDoubleClick="HistoryList_MouseDoubleClick">
@@ -81,14 +83,16 @@
                                         <TextBlock Grid.Column="2" Text="{Binding VisitTime, StringFormat='{}{0:MM/dd HH:mm}'}"
                                                    FontSize="11" Foreground="#666" VerticalAlignment="Center" Margin="10,0"/>
                                         <Button Grid.Column="3" Content="✕" Style="{StaticResource ActionButtonStyle}"
-                                                FontSize="12" Padding="8,4" Tag="{Binding Id}" Click="BtnDelete_Click"/>
+                                                FontSize="12" Padding="8,4" Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding Id}"/>
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <!-- 空状态提示 -->
                         <TextBlock x:Name="EmptyHint" Text="暂无历史记录" Foreground="#888" FontSize="14"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
                     </Grid>
                 </Border>
             </Grid>

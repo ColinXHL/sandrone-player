@@ -2,11 +2,10 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using AkashaNavigator.Core.Interfaces;
 using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Data;
-using AkashaNavigator.Services;
-using AkashaNavigator.Core.Interfaces;
-using AkashaNavigator.Views.Dialogs;
+using AkashaNavigator.ViewModels.Windows;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AkashaNavigator.Views.Windows
@@ -27,32 +26,16 @@ public partial class HistoryWindow : AnimatedWindow
 
 #region Constructor
 
-    private readonly IDataService _dataService;
+    private readonly HistoryWindowViewModel _viewModel;
 
-    public HistoryWindow(IDataService dataService)
+    public HistoryWindow(HistoryWindowViewModel viewModel)
     {
-        _dataService = dataService;
+        _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
-        LoadHistory();
-    }
+        DataContext = _viewModel;
 
-#endregion
-
-#region Private Methods
-
-    /// <summary>
-    /// 加载历史记录
-    /// </summary>
-    private void LoadHistory()
-    {
-        var searchText = SearchBox.Text.Trim();
-        var history = string.IsNullOrEmpty(searchText) ? _dataService.GetHistory()
-                                                       : _dataService.SearchHistory(searchText);
-
-        HistoryList.ItemsSource = history;
-
-        // 更新空状态提示
-        EmptyHint.Visibility = history.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        // 订阅 ViewModel 的选择事件
+        _viewModel.ItemSelected += OnViewModelItemSelected;
     }
 
 #endregion
@@ -60,39 +43,41 @@ public partial class HistoryWindow : AnimatedWindow
 #region Event Handlers
 
     /// <summary>
-    /// 搜索框文本变化
+    /// ViewModel 选择事件处理
     /// </summary>
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    private void OnViewModelItemSelected(object? sender, HistoryItem? item)
     {
-        LoadHistory();
-    }
-
-    /// <summary>
-    /// 删除单项
-    /// </summary>
-    private void BtnDelete_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button btn && btn.Tag is int id)
+        if (item != null)
         {
-            _dataService.DeleteHistory(id);
-            LoadHistory();
+            CloseWithAnimation(() => HistoryItemSelected?.Invoke(this, item.Url));
         }
     }
 
     /// <summary>
-    /// 清空全部
+    /// 搜索框文本变化（已通过绑定处理，此方法保留用于调试或扩展）
+    /// </summary>
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        // 绑定已处理，此方法可删除或保留用于调试
+    }
+
+    /// <summary>
+    /// 清空全部按钮点击事件
     /// </summary>
     private void BtnClearAll_Click(object sender, RoutedEventArgs e)
     {
         var dialogFactory = App.Services.GetRequiredService<IDialogFactory>();
-        var dialog = dialogFactory.CreateConfirmDialog("确定要清空所有历史记录吗？此操作不可撤销。", "确认清空", "清空", "取消");
+        var dialog = dialogFactory.CreateConfirmDialog(
+            "确定要清空所有历史记录吗？此操作不可撤销。",
+            "确认清空",
+            "清空",
+            "取消");
         dialog.Owner = this;
         dialog.ShowDialog();
 
         if (dialog.Result == true)
         {
-            _dataService.ClearHistory();
-            LoadHistory();
+            _viewModel.ClearAllCommand.Execute(null);
         }
     }
 
@@ -103,7 +88,7 @@ public partial class HistoryWindow : AnimatedWindow
     {
         if (HistoryList.SelectedItem is HistoryItem item)
         {
-            CloseWithAnimation(() => HistoryItemSelected?.Invoke(this, item.Url));
+            _viewModel.SelectItemCommand.Execute(item);
         }
     }
 

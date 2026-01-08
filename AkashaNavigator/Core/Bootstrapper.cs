@@ -128,7 +128,7 @@ namespace AkashaNavigator.Core
             // 插件中心菜单事件
             _eventBus.Subscribe<PluginCenterRequestedEvent>(e =>
             {
-                var pluginCenterWindow = new PluginCenterWindow();
+                var pluginCenterWindow = _serviceProvider.GetRequiredService<PluginCenterWindow>();
                 pluginCenterWindow.Owner = _playerWindow;
                 pluginCenterWindow.ShowDialog();
             });
