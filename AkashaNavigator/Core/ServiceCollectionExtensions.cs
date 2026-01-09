@@ -12,199 +12,254 @@ using AkashaNavigator.ViewModels.Windows;
 
 namespace AkashaNavigator.Core
 {
+/// <summary>
+/// 依赖注入容器配置扩展
+/// </summary>
+public static class ServiceCollectionExtensions
+{
     /// <summary>
-    /// 依赖注入容器配置扩展
+    /// 配置应用程序的所有服务
+    /// 注册顺序按依赖层级：Level 0 → Level 1 → Level 2 → Level 3
     /// </summary>
-    public static class ServiceCollectionExtensions
+    public static IServiceCollection ConfigureAppServices(this IServiceCollection services)
     {
-        /// <summary>
-        /// 配置应用程序的所有服务
-        /// 注册顺序按依赖层级：Level 0 → Level 1 → Level 2 → Level 3
-        /// </summary>
-        public static IServiceCollection ConfigureAppServices(this IServiceCollection services)
-        {
-            // ============================================================
-            // Level 0: 无依赖服务
-            // ============================================================
+        // ============================================================
+        // Level 0: 无依赖服务
+        // ============================================================
 
-            // EventBus（无依赖，用于组件间解耦通信）
-            services.AddSingleton<IEventBus, EventBus>();
+        // EventBus（无依赖，用于组件间解耦通信）
+        services.AddSingleton<IEventBus, EventBus>();
 
-            // LogService（无依赖）
-            services.AddSingleton<ILogService, LogService>();
+        // LogService（无依赖）
+        services.AddSingleton<ILogService, LogService>();
 
-            // CursorDetectionService（无依赖）
-            services.AddSingleton<ICursorDetectionService, CursorDetectionService>();
+        // CursorDetectionService（无依赖）
+        services.AddSingleton<ICursorDetectionService, CursorDetectionService>();
 
-            // PluginRegistry（依赖LogService）
-            services.AddSingleton<IPluginRegistry, PluginRegistry>();
+        // PluginRegistry（依赖LogService）
+        services.AddSingleton<IPluginRegistry, PluginRegistry>();
 
-            // ProfileRegistry（依赖LogService）
-            services.AddSingleton<IProfileRegistry, ProfileRegistry>();
+        // ProfileRegistry（依赖LogService）
+        services.AddSingleton<IProfileRegistry, ProfileRegistry>();
 
-            // PluginLibrary（无依赖）
-            // 只注册接口，避免重复注册导致多个实例
-            services.AddSingleton<IPluginLibrary, PluginLibrary>();
+        // PluginLibrary（无依赖）
+        // 只注册接口，避免重复注册导致多个实例
+        services.AddSingleton<IPluginLibrary, PluginLibrary>();
 
-            // HotkeyService（无依赖，使用Win32钩子）
-            services.AddSingleton<HotkeyService>();
+        // HotkeyService（无依赖，使用Win32钩子）
+        services.AddSingleton<HotkeyService>();
 
-            // ============================================================
-            // Level 1: 依赖 LogService
-            // ============================================================
+        // ============================================================
+        // Level 1: 依赖 LogService
+        // ============================================================
 
-            // ConfigService（依赖LogService）
-            services.AddSingleton<IConfigService, ConfigService>();
+        // ConfigService（依赖LogService）
+        services.AddSingleton<IConfigService, ConfigService>();
 
-            // NotificationService（依赖LogService）
-            services.AddSingleton<INotificationService, NotificationService>();
-
-            // SubtitleService（依赖LogService）
-            services.AddSingleton<ISubtitleService, SubtitleService>();
-
-            // SubscriptionManager（依赖LogService + ProfileRegistry + PluginRegistry）
-            services.AddSingleton<ISubscriptionManager, SubscriptionManager>();
-
-            // DataMigration（依赖LogService）
-            services.AddSingleton<DataMigration>();
-
-            // PluginAssociationManager（依赖LogService + PluginLibrary）
-            services.AddSingleton<IPluginAssociationManager, PluginAssociationManager>();
-
-            // ============================================================
-            // Level 2: 依赖 LogService + ProfileManager（复杂依赖）
-            // ============================================================
-
-            // PluginHost（依赖LogService + PluginAssociationManager + PluginLibrary）
-            services.AddSingleton<IPluginHost, PluginHost>();
-
-            // ProfileManager（依赖ConfigService, LogService, PluginHost, PluginAssociationManager, SubscriptionManager, PluginLibrary, ProfileRegistry）
-            services.AddSingleton<IProfileManager, ProfileManager>();
-
-            // ============================================================
-            // Level 3: 依赖 LogService + ProfileManager（必须在ProfileManager之后注册）
-            // ============================================================
-
-            // WindowStateService（依赖LogService + ProfileManager）
-            services.AddSingleton<IWindowStateService, WindowStateService>();
-
-            // PioneerNoteService（依赖LogService + ProfileManager）
-            services.AddSingleton<IPioneerNoteService, PioneerNoteService>();
-
-            // DataService（依赖LogService + ProfileManager，必须在ProfileManager之后）
-            services.AddSingleton<IDataService, DataService>();
-
-            // ProfileMarketplaceService（依赖LogService + ProfileManager + PluginAssociationManager + PluginLibrary）
-            services.AddSingleton<ProfileMarketplaceService>();
-
-            // ============================================================
-            // 其他服务
-            // ============================================================
-
-            // OverlayManager（使用现有单例实例，私有构造函数）
-            services.AddSingleton<IOverlayManager>(sp => OverlayManager.Instance);
-
-            // ============================================================
-            // ViewModels（Windows）
-            // ============================================================
-
-            // PlayerViewModel（依赖 ProfileManager + EventBus）
-            services.AddTransient<PlayerViewModel>();
-
-            // ControlBarViewModel（依赖 EventBus）
-            services.AddTransient<ControlBarViewModel>();
-
-            // HistoryWindowViewModel（依赖 DataService）
-            services.AddTransient<HistoryWindowViewModel>();
-
-            // SettingsViewModel（依赖 ConfigService + ProfileManager + EventBus）
-            services.AddTransient<SettingsViewModel>();
-
-            // PluginCenterViewModel（依赖 4 个 Page）
-            services.AddTransient<PluginCenterViewModel>();
-
-            // PioneerNoteViewModel（依赖 IPioneerNoteService）
-            services.AddTransient<PioneerNoteViewModel>();
-
-            // ============================================================
-            // 窗口（Transient，每次请求创建新实例）
-            // ============================================================
-
-            // PlayerWindow（依赖所有服务）
-            services.AddTransient<PlayerWindow>();
-
-            // SettingsWindow（依赖 SettingsViewModel + NotificationService）
-            // 依赖链：SettingsWindow → SettingsViewModel → (ConfigService, ProfileManager, EventBus)
-            services.AddTransient<SettingsWindow>();
-
-            // MyProfilesPage（依赖MyProfilesPageViewModel）
-            services.AddTransient<MyProfilesPageViewModel>();
-            services.AddTransient<MyProfilesPage>();
-
-            // InstalledPluginsPage（依赖InstalledPluginsPageViewModel）
-            services.AddTransient<InstalledPluginsPageViewModel>();
-            services.AddTransient<InstalledPluginsPage>();
-
-            // PluginSettingsWindow 工厂方法（用于创建带参数的窗口）
-            services.AddSingleton<Func<string, string, string, string, string?, PluginSettingsWindow>>(sp =>
+        // NotificationService（依赖LogService + Func<IDialogFactory>延迟解析）
+        services.AddSingleton<INotificationService>(
+            sp =>
             {
-                return (pluginId, pluginName, pluginDirectory, configDirectory, profileId) =>
-                {
-                    var profileManager = sp.GetRequiredService<IProfileManager>();
-                    var logService = sp.GetRequiredService<ILogService>();
-                    var pluginHost = sp.GetRequiredService<IPluginHost>();
-                    var notificationService = sp.GetRequiredService<INotificationService>();
-                    var overlayManager = sp.GetRequiredService<IOverlayManager>();
-                    return new PluginSettingsWindow(profileManager, logService, pluginHost, notificationService, overlayManager,
-                                                    pluginId, pluginName, pluginDirectory, configDirectory, profileId);
-                };
+                var logService = sp.GetRequiredService<ILogService>();
+                // 使用 Func 延迟解析 IDialogFactory，避免循环依赖
+                Func<IDialogFactory> dialogFactoryProvider = () => sp.GetRequiredService<IDialogFactory>();
+                return new NotificationService(logService, dialogFactoryProvider);
             });
 
-            // HistoryWindow（依赖 HistoryWindowViewModel）
-            // 依赖链：HistoryWindow → HistoryWindowViewModel → DataService
-            services.AddTransient<HistoryWindow>();
+        // SubtitleService（依赖LogService）
+        services.AddSingleton<ISubtitleService, SubtitleService>();
 
-            // BookmarkPopup（依赖BookmarkPopupViewModel）
-            services.AddTransient<BookmarkPopupViewModel>();
-            services.AddTransient<BookmarkPopup>();
+        // SubscriptionManager（依赖LogService + ProfileRegistry + PluginRegistry）
+        services.AddSingleton<ISubscriptionManager, SubscriptionManager>();
 
-            // ProfileCreateDialog（依赖ProfileCreateDialogViewModel）
-            services.AddTransient<ProfileCreateDialogViewModel>();
-            services.AddTransient<ProfileCreateDialog>();
+        // DataMigration（依赖LogService）
+        services.AddSingleton<DataMigration>();
 
-            // ProfileEditDialog（依赖ProfileEditDialogViewModel）
-            services.AddTransient<ProfileEditDialogViewModel>();
+        // PluginAssociationManager（依赖LogService + PluginLibrary）
+        services.AddSingleton<IPluginAssociationManager, PluginAssociationManager>();
 
-            // PluginUpdatePromptDialog（依赖PluginUpdatePromptDialogViewModel）
-            services.AddTransient<PluginUpdatePromptDialogViewModel>();
+        // ============================================================
+        // Level 2: 依赖 LogService + ProfileManager（复杂依赖）
+        // ============================================================
 
-            // RecordNoteDialog（依赖RecordNoteDialogViewModel）
-            services.AddTransient<RecordNoteDialogViewModel>();
+        // PluginHost（依赖LogService + PluginAssociationManager + PluginLibrary）
+        services.AddSingleton<IPluginHost, PluginHost>();
 
-            // PluginSelectorDialog（依赖PluginSelectorDialogViewModel）
-            services.AddTransient<PluginSelectorDialogViewModel>();
+        // ProfileManager（依赖ConfigService, LogService, PluginHost, PluginAssociationManager, SubscriptionManager,
+        // PluginLibrary, ProfileRegistry）
+        services.AddSingleton<IProfileManager, ProfileManager>();
 
-            // MarketplaceProfileDetailDialog（依赖MarketplaceProfileDetailDialogViewModel）
-            services.AddTransient<MarketplaceProfileDetailDialogViewModel>();
+        // ============================================================
+        // Level 3: 依赖 LogService + ProfileManager（必须在ProfileManager之后注册）
+        // ============================================================
 
-            // WelcomeDialog（依赖WelcomeDialogViewModel）
-            services.AddTransient<WelcomeDialogViewModel>();
-            services.AddTransient<WelcomeDialog>();
+        // WindowStateService（依赖LogService + ProfileManager）
+        services.AddSingleton<IWindowStateService, WindowStateService>();
 
-            // SubscriptionSourceDialog（依赖SubscriptionSourceDialogViewModel）
-            services.AddTransient<SubscriptionSourceDialogViewModel>();
+        // PioneerNoteService（依赖LogService + ProfileManager）
+        services.AddSingleton<IPioneerNoteService, PioneerNoteService>();
 
-            // ExitRecordPrompt（依赖ExitRecordPromptViewModel）
-            services.AddTransient<ExitRecordPromptViewModel>();
+        // DataService（依赖LogService + ProfileManager，必须在ProfileManager之后）
+        services.AddSingleton<IDataService, DataService>();
 
-            // ProfileSelectorDialog（依赖ProfileSelectorDialogViewModel）
-            services.AddTransient<ProfileSelectorDialogViewModel>();
+        // ProfileMarketplaceService（依赖LogService + ProfileManager + PluginAssociationManager + PluginLibrary）
+        services.AddSingleton<ProfileMarketplaceService>();
 
-            // UninstallConfirmDialog（依赖UninstallConfirmDialogViewModel）
-            services.AddTransient<UninstallConfirmDialogViewModel>();
+        // ============================================================
+        // 其他服务
+        // ============================================================
 
-            // RecordNoteDialog 工厂方法（委托到 IDialogFactory）
-            services.AddSingleton<Func<string, string, RecordNoteDialog>>(sp =>
+        // OverlayManager（使用现有单例实例，私有构造函数）
+        services.AddSingleton<IOverlayManager>(sp => OverlayManager.Instance);
+
+        // ============================================================
+        // ViewModels（Pages）- 必须在 PluginCenterViewModel 之前注册
+        // ============================================================
+
+        // MyProfilesPageViewModel（依赖 ProfileManager + PluginAssociationManager + PluginLibrary + EventBus）
+        services.AddTransient<MyProfilesPageViewModel>();
+
+        // InstalledPluginsPageViewModel（依赖 PluginLibrary + PluginAssociationManager + ProfileManager +
+        // NotificationService）
+        services.AddTransient<InstalledPluginsPageViewModel>();
+
+        // AvailablePluginsPageViewModel（依赖 PluginLibrary + NotificationService）
+        services.AddTransient<AvailablePluginsPageViewModel>();
+
+        // ProfileMarketPageViewModel（依赖 ProfileMarketplaceService + PluginLibrary + ProfileManager +
+        // NotificationService）
+        services.AddTransient<ProfileMarketPageViewModel>();
+
+        // ============================================================
+        // ViewModels（Windows）
+        // ============================================================
+
+        // PlayerViewModel（依赖 ProfileManager + EventBus）
+        services.AddTransient<PlayerViewModel>();
+
+        // ControlBarViewModel（依赖 EventBus）
+        services.AddTransient<ControlBarViewModel>();
+
+        // HistoryWindowViewModel（依赖 DataService）
+        services.AddTransient<HistoryWindowViewModel>();
+
+        // SettingsViewModel（依赖 ConfigService + ProfileManager + EventBus）
+        services.AddTransient<SettingsViewModel>();
+
+        // PluginCenterViewModel（依赖 4 个 PageViewModel）
+        // 依赖链：PluginCenterViewModel → (MyProfilesPageViewModel, InstalledPluginsPageViewModel,
+        //         AvailablePluginsPageViewModel, ProfileMarketPageViewModel)
+        services.AddTransient<PluginCenterViewModel>();
+
+        // PioneerNoteViewModel（依赖 IPioneerNoteService）
+        services.AddTransient<PioneerNoteViewModel>();
+
+        // ============================================================
+        // Pages（Transient，每次请求创建新实例）
+        // 必须在 PluginCenterWindow 之前注册
+        // ============================================================
+
+        // MyProfilesPage（依赖 MyProfilesPageViewModel + IDialogFactory + IProfileManager + IPluginLibrary +
+        //                IPluginHost + IPluginAssociationManager + INotificationService）
+        services.AddTransient<MyProfilesPage>();
+
+        // InstalledPluginsPage（依赖 InstalledPluginsPageViewModel + IPluginLibrary + IDialogFactory）
+        services.AddTransient<InstalledPluginsPage>();
+
+        // AvailablePluginsPage（依赖 AvailablePluginsPageViewModel + IDialogFactory）
+        services.AddTransient<AvailablePluginsPage>();
+
+        // MarketplaceProfileDetailDialogViewModel 工厂方法（用于 ProfileMarketPage 延迟创建）
+        services.AddSingleton<Func<MarketplaceProfileDetailDialogViewModel>>(
+            sp => () => sp.GetRequiredService<MarketplaceProfileDetailDialogViewModel>());
+
+        // ProfileMarketPage（依赖 ProfileMarketPageViewModel + IDialogFactory +
+        //                   Func<MarketplaceProfileDetailDialogViewModel>）
+        services.AddTransient<ProfileMarketPage>();
+
+        // ============================================================
+        // 窗口（Transient，每次请求创建新实例）
+        // ============================================================
+
+        // PlayerWindow（依赖所有服务 + IDialogFactory + PioneerNoteWindow 工厂）
+        services.AddTransient<PlayerWindow>();
+
+        // PioneerNoteWindow 工厂方法（用于 PlayerWindow 延迟创建）
+        services.AddSingleton<Func<PioneerNoteWindow>>(sp => () => sp.GetRequiredService<PioneerNoteWindow>());
+
+        // SettingsWindow（依赖 SettingsViewModel + NotificationService）
+        // 依赖链：SettingsWindow → SettingsViewModel → (ConfigService, ProfileManager, EventBus)
+        services.AddTransient<SettingsWindow>();
+
+        // PluginCenterWindow（依赖 PluginCenterViewModel + 4 个 Page）
+        // 依赖链：PluginCenterWindow → (PluginCenterViewModel, MyProfilesPage, InstalledPluginsPage,
+        //         AvailablePluginsPage, ProfileMarketPage)
+        services.AddTransient<PluginCenterWindow>();
+
+        // PluginSettingsWindow 工厂方法（用于创建带参数的窗口）
+        services.AddSingleton < Func < string, string, string, string, string ?,
+            PluginSettingsWindow >> (sp =>
+                                     {
+                                         return (pluginId, pluginName, pluginDirectory, configDirectory, profileId) =>
+                                         {
+                                             var profileManager = sp.GetRequiredService<IProfileManager>();
+                                             var logService = sp.GetRequiredService<ILogService>();
+                                             var pluginHost = sp.GetRequiredService<IPluginHost>();
+                                             var notificationService = sp.GetRequiredService<INotificationService>();
+                                             var overlayManager = sp.GetRequiredService<IOverlayManager>();
+                                             return new PluginSettingsWindow(profileManager, logService, pluginHost,
+                                                                             notificationService, overlayManager,
+                                                                             pluginId, pluginName, pluginDirectory,
+                                                                             configDirectory, profileId);
+                                         };
+                                     });
+
+        // HistoryWindow（依赖 HistoryWindowViewModel + IDialogFactory）
+        // 依赖链：HistoryWindow → (HistoryWindowViewModel, IDialogFactory)
+        services.AddTransient<HistoryWindow>();
+
+        // BookmarkPopup（依赖 BookmarkPopupViewModel + IDialogFactory）
+        // 注意：BookmarkPopup 通过 DialogFactory.CreateBookmarkPopup() 创建，不直接从 DI 获取
+        services.AddTransient<BookmarkPopupViewModel>();
+
+        // ProfileCreateDialog（依赖ProfileCreateDialogViewModel）
+        services.AddTransient<ProfileCreateDialogViewModel>();
+        services.AddTransient<ProfileCreateDialog>();
+
+        // ProfileEditDialog（依赖ProfileEditDialogViewModel）
+        services.AddTransient<ProfileEditDialogViewModel>();
+
+        // PluginUpdatePromptDialog（依赖PluginUpdatePromptDialogViewModel）
+        services.AddTransient<PluginUpdatePromptDialogViewModel>();
+
+        // RecordNoteDialog（依赖RecordNoteDialogViewModel）
+        services.AddTransient<RecordNoteDialogViewModel>();
+
+        // PluginSelectorDialog（依赖PluginSelectorDialogViewModel）
+        services.AddTransient<PluginSelectorDialogViewModel>();
+
+        // MarketplaceProfileDetailDialog（依赖MarketplaceProfileDetailDialogViewModel）
+        services.AddTransient<MarketplaceProfileDetailDialogViewModel>();
+
+        // WelcomeDialog（依赖WelcomeDialogViewModel）
+        services.AddTransient<WelcomeDialogViewModel>();
+        services.AddTransient<WelcomeDialog>();
+
+        // SubscriptionSourceDialog（依赖SubscriptionSourceDialogViewModel）
+        services.AddTransient<SubscriptionSourceDialogViewModel>();
+
+        // ExitRecordPrompt（依赖ExitRecordPromptViewModel）
+        services.AddTransient<ExitRecordPromptViewModel>();
+
+        // ProfileSelectorDialog（依赖ProfileSelectorDialogViewModel）
+        services.AddTransient<ProfileSelectorDialogViewModel>();
+
+        // UninstallConfirmDialog（依赖UninstallConfirmDialogViewModel）
+        services.AddTransient<UninstallConfirmDialogViewModel>();
+
+        // RecordNoteDialog 工厂方法（委托到 IDialogFactory）
+        services.AddSingleton<Func<string, string, RecordNoteDialog>>(
+            sp =>
             {
                 return (url, title) =>
                 {
@@ -213,44 +268,28 @@ namespace AkashaNavigator.Core
                 };
             });
 
-            // PioneerNoteWindow（依赖 PioneerNoteViewModel + IDialogFactory）
-            // 依赖链：PioneerNoteWindow → (PioneerNoteViewModel, IDialogFactory)
-            services.AddTransient<PioneerNoteWindow>();
+        // PioneerNoteWindow（依赖 PioneerNoteViewModel + IDialogFactory + IPioneerNoteService）
+        // 依赖链：PioneerNoteWindow → (PioneerNoteViewModel, IDialogFactory, IPioneerNoteService)
+        services.AddTransient<PioneerNoteWindow>();
 
-            // ============================================================
-            // Dialogs（Transient，每次请求创建新实例）
-            // ============================================================
+        // ============================================================
+        // Dialogs（Transient，每次请求创建新实例）
+        // ============================================================
 
-            // SubscriptionSourceDialog 已迁移到 MVVM，通过 DialogFactory 创建
+        // SubscriptionSourceDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // ProfileSelectorDialog 已迁移到 MVVM，通过 DialogFactory 创建
+        // ProfileSelectorDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // UninstallConfirmDialog 已迁移到 MVVM，通过 DialogFactory 创建
+        // UninstallConfirmDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // ExitRecordPrompt 已迁移到 MVVM，通过 DialogFactory 创建
+        // ExitRecordPrompt 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // PluginUpdatePromptDialog 已迁移到 MVVM，通过 DialogFactory 创建
+        // PluginUpdatePromptDialog 已迁移到 MVVM，通过 DialogFactory 创建
 
-            // DialogFactory（工厂模式创建带参数的Dialog）
-            services.AddSingleton<IDialogFactory, DialogFactory>();
+        // DialogFactory（工厂模式创建带参数的Dialog）
+        services.AddSingleton<IDialogFactory, DialogFactory>();
 
-            // ============================================================
-            // Pages（Transient，每次请求创建新实例）
-            // ============================================================
-
-            // AvailablePluginsPage（依赖AvailablePluginsPageViewModel）
-            services.AddTransient<AvailablePluginsPageViewModel>();
-            services.AddTransient<AvailablePluginsPage>();
-
-            // ProfileMarketPage（依赖ProfileMarketPageViewModel）
-            services.AddTransient<ProfileMarketPageViewModel>();
-            services.AddTransient<ProfileMarketPage>();
-
-            // PluginCenterWindow（依赖 PluginCenterViewModel）
-            // 依赖链：PluginCenterWindow → PluginCenterViewModel → 4×Page
-            services.AddTransient<PluginCenterWindow>();
-
-            return services;
-        }
+        return services;
     }
+}
 }

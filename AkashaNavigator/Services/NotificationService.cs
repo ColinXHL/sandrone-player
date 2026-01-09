@@ -5,7 +5,6 @@ using AkashaNavigator.Models.Config;
 using AkashaNavigator.Views.Windows;
 using AkashaNavigator.Views.Dialogs;
 using AkashaNavigator.Core.Interfaces;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AkashaNavigator.Services
 {
@@ -24,11 +23,10 @@ public class NotificationService : INotificationService
     /// </summary>
     public static INotificationService Instance
     {
-        get
-        {
+        get {
             if (_instance == null)
             {
-                _instance = new NotificationService(LogService.Instance);
+                _instance = new NotificationService(LogService.Instance, null);
             }
             return _instance;
         }
@@ -40,6 +38,7 @@ public class NotificationService : INotificationService
 #region Fields
 
     private readonly ILogService _logService;
+    private readonly Func<IDialogFactory>? _dialogFactoryProvider;
 
 #endregion
 
@@ -48,9 +47,12 @@ public class NotificationService : INotificationService
     /// <summary>
     /// DI 容器使用的构造函数
     /// </summary>
-    public NotificationService(ILogService logService)
+    /// <param name="logService">日志服务</param>
+    /// <param name="dialogFactoryProvider">对话框工厂提供者（延迟解析，避免循环依赖）</param>
+    public NotificationService(ILogService logService, Func<IDialogFactory>? dialogFactoryProvider)
     {
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
+        _dialogFactoryProvider = dialogFactoryProvider;
     }
 
 #endregion
@@ -129,10 +131,19 @@ public class NotificationService : INotificationService
                 return tcs.Task;
             }
 
+            // 检查 DialogFactory 是否可用
+            if (_dialogFactoryProvider == null)
+            {
+                _logService.Warn(nameof(NotificationService), "无法显示对话框：DialogFactory 未注入");
+                tcs.SetResult(false);
+                return tcs.Task;
+            }
+
             Application.Current.Dispatcher.Invoke(() =>
                                                   {
-                                                      var dialogFactory = App.Services.GetRequiredService<IDialogFactory>();
-                                                      var dialog = dialogFactory.CreateConfirmDialog(message, title, yesText, noText);
+                                                      var dialogFactory = _dialogFactoryProvider();
+                                                      var dialog = dialogFactory.CreateConfirmDialog(message, title,
+                                                                                                     yesText, noText);
                                                       CenterWindowOnScreen(dialog);
 
                                                       dialog.Closed += (s, e) =>

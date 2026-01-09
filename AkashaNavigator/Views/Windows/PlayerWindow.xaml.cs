@@ -5,7 +5,6 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using Microsoft.Extensions.DependencyInjection;
 using AkashaNavigator.Core.Interfaces;
 using AkashaNavigator.Core.Events;
 using AkashaNavigator.Core.Events.Events;
@@ -46,6 +45,8 @@ public partial class PlayerWindow : Window
     private readonly ILogService _logService;
     private readonly ICursorDetectionService _cursorDetectionService;
     private readonly IEventBus _eventBus;
+    private readonly IDialogFactory _dialogFactory;
+    private readonly Func<PioneerNoteWindow> _pioneerNoteWindowFactory;
 
     /// <summary>
     /// 是否最大化
@@ -91,17 +92,11 @@ public partial class PlayerWindow : Window
 
 #region Constructor
 
-    public PlayerWindow(
-        PlayerViewModel viewModel,
-        IConfigService configService,
-        IProfileManager profileManager,
-        IWindowStateService windowStateService,
-        ISubtitleService subtitleService,
-        IDataService dataService,
-        IPluginHost pluginHost,
-        ILogService logService,
-        ICursorDetectionService cursorDetectionService,
-        IEventBus eventBus)
+    public PlayerWindow(PlayerViewModel viewModel, IConfigService configService, IProfileManager profileManager,
+                        IWindowStateService windowStateService, ISubtitleService subtitleService,
+                        IDataService dataService, IPluginHost pluginHost, ILogService logService,
+                        ICursorDetectionService cursorDetectionService, IEventBus eventBus,
+                        IDialogFactory dialogFactory, Func<PioneerNoteWindow> pioneerNoteWindowFactory)
     {
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         _configService = configService ?? throw new ArgumentNullException(nameof(configService));
@@ -111,8 +106,12 @@ public partial class PlayerWindow : Window
         _dataService = dataService ?? throw new ArgumentNullException(nameof(dataService));
         _pluginHost = pluginHost ?? throw new ArgumentNullException(nameof(pluginHost));
         _logService = logService ?? throw new ArgumentNullException(nameof(logService));
-        _cursorDetectionService = cursorDetectionService ?? throw new ArgumentNullException(nameof(cursorDetectionService));
+        _cursorDetectionService =
+            cursorDetectionService ?? throw new ArgumentNullException(nameof(cursorDetectionService));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        _dialogFactory = dialogFactory ?? throw new ArgumentNullException(nameof(dialogFactory));
+        _pioneerNoteWindowFactory =
+            pioneerNoteWindowFactory ?? throw new ArgumentNullException(nameof(pioneerNoteWindowFactory));
 
         InitializeComponent();
         _config = _configService.Config;
@@ -380,11 +379,7 @@ public partial class PlayerWindow : Window
         _viewModel.OnNavigationCompleted(e.IsSuccess);
 
         // 发布导航状态变化事件
-        _eventBus.Publish(new NavigationStateChangedEvent
-        {
-            CanGoBack = CanGoBack,
-            CanGoForward = CanGoForward
-        });
+        _eventBus.Publish(new NavigationStateChangedEvent { CanGoBack = CanGoBack, CanGoForward = CanGoForward });
 
         // 记录到历史（仅成功的导航）
         if (e.IsSuccess && WebView.CoreWebView2 != null)
@@ -418,11 +413,7 @@ public partial class PlayerWindow : Window
         _eventBus.Publish(new UrlChangedEvent { Url = currentUrl });
 
         // 发布导航状态变化事件
-        _eventBus.Publish(new NavigationStateChangedEvent
-        {
-            CanGoBack = CanGoBack,
-            CanGoForward = CanGoForward
-        });
+        _eventBus.Publish(new NavigationStateChangedEvent { CanGoBack = CanGoBack, CanGoForward = CanGoForward });
 
         // 广播 urlChanged 事件到插件
         if (!string.IsNullOrEmpty(currentUrl))
@@ -1020,8 +1011,7 @@ public partial class PlayerWindow : Window
                 if (ExitRecordPrompt.ShouldShowPrompt(currentUrl))
                 {
                     // 显示退出记录提示窗口
-                    var dialogFactory = App.Services.GetRequiredService<IDialogFactory>();
-                    var exitPrompt = dialogFactory.CreateExitRecordPrompt(currentUrl, currentTitle);
+                    var exitPrompt = _dialogFactory.CreateExitRecordPrompt(currentUrl, currentTitle);
                     exitPrompt.Owner = this;
                     exitPrompt.ShowDialog();
 
@@ -1036,7 +1026,7 @@ public partial class PlayerWindow : Window
                     case PromptResult.OpenPioneerNotes:
                         // 取消退出，打开开荒笔记窗口
                         e.Cancel = true;
-                        var pioneerNoteWindow = App.Services.GetRequiredService<PioneerNoteWindow>();
+                        var pioneerNoteWindow = _pioneerNoteWindowFactory();
                         pioneerNoteWindow.Owner = this;
                         pioneerNoteWindow.NoteItemSelected += (s, url) => Navigate(url);
                         pioneerNoteWindow.Show();
@@ -1045,7 +1035,7 @@ public partial class PlayerWindow : Window
                     case PromptResult.QuickRecord:
                         // 取消退出，打开记录笔记对话框
                         e.Cancel = true;
-                        var recordDialog = dialogFactory.CreateRecordNoteDialog(currentUrl, currentTitle);
+                        var recordDialog = _dialogFactory.CreateRecordNoteDialog(currentUrl, currentTitle);
                         recordDialog.Owner = this;
                         recordDialog.ShowDialog();
                         return;

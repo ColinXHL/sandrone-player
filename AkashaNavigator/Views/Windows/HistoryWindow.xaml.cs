@@ -6,7 +6,6 @@ using AkashaNavigator.Core.Interfaces;
 using AkashaNavigator.Helpers;
 using AkashaNavigator.Models.Data;
 using AkashaNavigator.ViewModels.Windows;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AkashaNavigator.Views.Windows
 {
@@ -27,10 +26,12 @@ public partial class HistoryWindow : AnimatedWindow
 #region Constructor
 
     private readonly HistoryWindowViewModel _viewModel;
+    private readonly IDialogFactory _dialogFactory;
 
-    public HistoryWindow(HistoryWindowViewModel viewModel)
+    public HistoryWindow(HistoryWindowViewModel viewModel, IDialogFactory dialogFactory)
     {
         _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        _dialogFactory = dialogFactory ?? throw new ArgumentNullException(nameof(dialogFactory));
         InitializeComponent();
         DataContext = _viewModel;
 
@@ -66,12 +67,8 @@ public partial class HistoryWindow : AnimatedWindow
     /// </summary>
     private void BtnClearAll_Click(object sender, RoutedEventArgs e)
     {
-        var dialogFactory = App.Services.GetRequiredService<IDialogFactory>();
-        var dialog = dialogFactory.CreateConfirmDialog(
-            "确定要清空所有历史记录吗？此操作不可撤销。",
-            "确认清空",
-            "清空",
-            "取消");
+        var dialog = _dialogFactory.CreateConfirmDialog("确定要清空所有历史记录吗？此操作不可撤销。", "确认清空",
+                                                        "清空", "取消");
         dialog.Owner = this;
         dialog.ShowDialog();
 
