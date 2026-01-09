@@ -190,7 +190,7 @@
                     <!-- 收藏按钮 -->
                     <Button x:Name="BtnBookmark"
                             Style="{StaticResource NavButtonStyle}"
-                            Command="{Binding BookmarkCommand}"
+                            Command="{Binding ToggleBookmarkCommand}"
                             ToolTip="收藏"
                             Margin="0,0,8,0">
                         <TextBlock Text="☆" FontSize="14"/>

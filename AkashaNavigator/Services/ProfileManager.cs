@@ -14,69 +14,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AkashaNavigator.Services
 {
-#region Result Types
-
-/// <summary>
-/// Profile 创建结果
-/// </summary>
-public class CreateProfileResult
-{
-    /// <summary>
-    /// 是否成功
-    /// </summary>
-    public bool IsSuccess { get; set; }
-
-    /// <summary>
-    /// 错误消息（失败时）
-    /// </summary>
-    public string? ErrorMessage { get; set; }
-
-    /// <summary>
-    /// 创建的 Profile ID（成功时）
-    /// </summary>
-    public string? ProfileId { get; set; }
-
-    /// <summary>
-    /// 创建成功结果
-    /// </summary>
-    public static CreateProfileResult Success(string profileId) => new() { IsSuccess = true, ProfileId = profileId };
-
-    /// <summary>
-    /// 创建失败结果
-    /// </summary>
-    public static CreateProfileResult Failure(string errorMessage) => new() { IsSuccess = false,
-                                                                              ErrorMessage = errorMessage };
-}
-
-/// <summary>
-/// Profile 删除结果
-/// </summary>
-public class DeleteProfileResult
-{
-    /// <summary>
-    /// 是否成功
-    /// </summary>
-    public bool IsSuccess { get; set; }
-
-    /// <summary>
-    /// 错误消息（失败时）
-    /// </summary>
-    public string? ErrorMessage { get; set; }
-
-    /// <summary>
-    /// 创建成功结果
-    /// </summary>
-    public static DeleteProfileResult Success() => new() { IsSuccess = true };
-
-    /// <summary>
-    /// 创建失败结果
-    /// </summary>
-    public static DeleteProfileResult Failure(string errorMessage) => new() { IsSuccess = false,
-                                                                              ErrorMessage = errorMessage };
-}
-
-#endregion
-
 /// <summary>
 /// Profile 管理服务
 /// 负责加载、切换、保存 Profile 配置
@@ -94,8 +31,7 @@ public class ProfileManager : IProfileManager
     /// </summary>
     public static ProfileManager Instance
     {
-        get
-        {
+        get {
             if (_instance == null)
             {
                 lock (_lock)
@@ -108,17 +44,18 @@ public class ProfileManager : IProfileManager
                             services?.GetRequiredService<IConfigService>() ?? ConfigService.Instance,
                             services?.GetRequiredService<ILogService>() ?? LogService.Instance,
                             services?.GetRequiredService<IPluginHost>() ?? PluginHost.Instance,
-                            services?.GetRequiredService<IPluginAssociationManager>() ?? PluginAssociationManager.Instance,
+                            services?.GetRequiredService<IPluginAssociationManager>() ??
+                                PluginAssociationManager.Instance,
                             services?.GetRequiredService<ISubscriptionManager>() ?? SubscriptionManager.Instance,
                             services?.GetRequiredService<IPluginLibrary>() ?? PluginLibrary.Instance,
-                            services?.GetRequiredService<IProfileRegistry>() ?? ProfileRegistry.Instance
-                        );
+                            services?.GetRequiredService<IProfileRegistry>() ?? ProfileRegistry.Instance);
                     }
                 }
             }
             return _instance;
         }
-        internal set => _instance = value;
+    internal
+        set => _instance = value;
     }
 
     /// <summary>
@@ -189,14 +126,9 @@ public class ProfileManager : IProfileManager
     /// <summary>
     /// 私有构造函数（单例模式 + DI）
     /// </summary>
-    public ProfileManager(
-        IConfigService configService,
-        ILogService logService,
-        IPluginHost pluginHost,
-        IPluginAssociationManager pluginAssociationManager,
-        ISubscriptionManager subscriptionManager,
-        IPluginLibrary pluginLibrary,
-        IProfileRegistry profileRegistry)
+    public ProfileManager(IConfigService configService, ILogService logService, IPluginHost pluginHost,
+                          IPluginAssociationManager pluginAssociationManager, ISubscriptionManager subscriptionManager,
+                          IPluginLibrary pluginLibrary, IProfileRegistry profileRegistry)
     {
         _configService = configService;
         _logService = logService;
@@ -299,8 +231,8 @@ public class ProfileManager : IProfileManager
         }
         catch (Exception ex)
         {
-            _logService.Debug(nameof(ProfileManager), "保存 Profile 失败 [{ProfilePath}]: {ErrorMessage}",
-                                      profilePath, ex.Message);
+            _logService.Debug(nameof(ProfileManager), "保存 Profile 失败 [{ProfilePath}]: {ErrorMessage}", profilePath,
+                              ex.Message);
         }
     }
 
@@ -407,13 +339,13 @@ public class ProfileManager : IProfileManager
     /// <param name="name">Profile 名称</param>
     /// <param name="icon">Profile 图标</param>
     /// <param name="pluginIds">要关联的插件 ID 列表</param>
-    /// <returns>创建结果</returns>
-    public CreateProfileResult CreateProfile(string? id, string name, string icon, List<string>? pluginIds)
+    /// <returns>成功时返回 ProfileId，失败时返回错误信息</returns>
+    public Result<string> CreateProfile(string? id, string name, string icon, List<string>? pluginIds)
     {
         // 验证名称
         if (string.IsNullOrWhiteSpace(name))
         {
-            return CreateProfileResult.Failure("Profile 名称不能为空");
+            return Result<string>.Failure(Error.Validation(ProfileErrorCodes.NameEmpty, "Profile 名称不能为空"));
         }
 
         // 生成或验证 ID
@@ -422,7 +354,7 @@ public class ProfileManager : IProfileManager
         // 检查 ID 是否已存在
         if (ProfileIdExists(profileId))
         {
-            return CreateProfileResult.Failure("已存在同名 Profile");
+            return Result<string>.Failure(Error.Validation(ProfileErrorCodes.AlreadyExists, "已存在同名 Profile"));
         }
 
         // 验证图标
@@ -457,12 +389,12 @@ public class ProfileManager : IProfileManager
             }
 
             _logService.Info(nameof(ProfileManager), "成功创建 Profile '{ProfileId}'", profileId);
-            return CreateProfileResult.Success(profileId);
+            return Result<string>.Success(profileId);
         }
         catch (Exception ex)
         {
             _logService.Error(nameof(ProfileManager), ex, "创建 Profile 失败");
-            return CreateProfileResult.Failure($"创建失败: {ex.Message}");
+            return Result<string>.Failure(Error.Unknown("PROFILE_CREATE_FAILED", $"创建失败: {ex.Message}", ex));
         }
     }
 
@@ -516,19 +448,19 @@ public class ProfileManager : IProfileManager
     /// 删除 Profile
     /// </summary>
     /// <param name="id">Profile ID</param>
-    /// <returns>删除结果</returns>
-    public DeleteProfileResult DeleteProfile(string id)
+    /// <returns>成功时返回 Result.Success()，失败时返回错误信息</returns>
+    public Result DeleteProfile(string id)
     {
         // 验证 ID
         if (string.IsNullOrWhiteSpace(id))
         {
-            return DeleteProfileResult.Failure("Profile ID 不能为空");
+            return Result.Failure(Error.Validation(ProfileErrorCodes.NameEmpty, "Profile ID 不能为空"));
         }
 
         // 不允许删除默认 Profile
         if (IsDefaultProfile(id))
         {
-            return DeleteProfileResult.Failure("默认 Profile 不能删除");
+            return Result.Failure(Error.Validation(ProfileErrorCodes.IsDefault, "默认 Profile 不能删除"));
         }
 
         // 查找 Profile
@@ -536,7 +468,7 @@ public class ProfileManager : IProfileManager
         if (profile == null)
         {
             // Profile 不存在，静默成功
-            return DeleteProfileResult.Success();
+            return Result.Success();
         }
 
         try
@@ -564,20 +496,24 @@ public class ProfileManager : IProfileManager
             }
 
             _logService.Info(nameof(ProfileManager), "成功删除 Profile '{ProfileId}'", id);
-            return DeleteProfileResult.Success();
+            return Result.Success();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return DeleteProfileResult.Failure($"删除 Profile 目录失败：权限不足。{ex.Message}");
+            return Result.Failure(Error.FileSystem(ProfileErrorCodes.DeleteFailed,
+                                                   $"删除 Profile 目录失败：权限不足。{ex.Message}",
+                                                   filePath: GetProfileDirectory(id)));
         }
         catch (IOException ex)
         {
-            return DeleteProfileResult.Failure($"删除 Profile 目录失败：文件被占用。{ex.Message}");
+            return Result.Failure(Error.FileSystem(ProfileErrorCodes.DeleteFailed,
+                                                   $"删除 Profile 目录失败：文件被占用。{ex.Message}",
+                                                   filePath: GetProfileDirectory(id)));
         }
         catch (Exception ex)
         {
             _logService.Error(nameof(ProfileManager), ex, "删除 Profile 失败");
-            return DeleteProfileResult.Failure($"删除失败: {ex.Message}");
+            return Result.Failure(Error.Unknown(ProfileErrorCodes.DeleteFailed, $"删除失败: {ex.Message}", ex));
         }
     }
 
@@ -807,8 +743,8 @@ public class ProfileManager : IProfileManager
                                                  ExportedAt = DateTime.Now };
 
         _logService.Info(nameof(ProfileManager),
-                                 "导出 Profile '{ProfileId}'：{ReferenceCount} 个插件引用，{ConfigCount} 个插件配置",
-                                 profileId, referenceEntries.Count, pluginConfigs.Count);
+                         "导出 Profile '{ProfileId}'：{ReferenceCount} 个插件引用，{ConfigCount} 个插件配置", profileId,
+                         referenceEntries.Count, pluginConfigs.Count);
 
         return exportData;
     }
@@ -828,8 +764,7 @@ public class ProfileManager : IProfileManager
         try
         {
             exportData.SaveToFile(filePath);
-            _logService.Info(nameof(ProfileManager), "Profile '{ProfileId}' 已导出到 {FilePath}", profileId,
-                                     filePath);
+            _logService.Info(nameof(ProfileManager), "Profile '{ProfileId}' 已导出到 {FilePath}", profileId, filePath);
             return true;
         }
         catch (Exception ex)
@@ -890,8 +825,7 @@ public class ProfileManager : IProfileManager
             // 创建插件关联
             foreach (var reference in data.PluginReferences)
             {
-                _pluginAssociationManager.AddPluginToProfile(reference.PluginId, data.ProfileId,
-                                                                     reference.Enabled);
+                _pluginAssociationManager.AddPluginToProfile(reference.PluginId, data.ProfileId, reference.Enabled);
             }
 
             // 保存插件配置
@@ -928,8 +862,8 @@ public class ProfileManager : IProfileManager
             ReloadProfiles();
 
             _logService.Info(nameof(ProfileManager),
-                                     "导入 Profile '{ProfileId}'：{ReferenceCount} 个插件引用，{MissingCount} 个缺失",
-                                     data.ProfileId, data.PluginReferences.Count, missingPlugins.Count);
+                             "导入 Profile '{ProfileId}'：{ReferenceCount} 个插件引用，{MissingCount} 个缺失",
+                             data.ProfileId, data.PluginReferences.Count, missingPlugins.Count);
 
             return ProfileImportResult.Success(data.ProfileId, missingPlugins);
         }
@@ -1049,7 +983,7 @@ public class ProfileManager : IProfileManager
         else
         {
             _logService.Debug(nameof(ProfileManager), "加载插件配置失败 [{ConfigPath}]: {ErrorMessage}", configPath,
-                                      result.Error?.Message ?? "Unknown error");
+                              result.Error?.Message ?? "Unknown error");
             return null;
         }
     }
@@ -1080,7 +1014,7 @@ public class ProfileManager : IProfileManager
         catch (Exception ex)
         {
             _logService.Debug(nameof(ProfileManager), "保存插件配置失败 [{ConfigPath}]: {ErrorMessage}", configPath,
-                                      ex.Message);
+                              ex.Message);
             return false;
         }
     }
@@ -1109,7 +1043,7 @@ public class ProfileManager : IProfileManager
         catch (Exception ex)
         {
             _logService.Debug(nameof(ProfileManager), "删除插件配置失败 [{ConfigPath}]: {ErrorMessage}", configPath,
-                                      ex.Message);
+                              ex.Message);
             return false;
         }
     }
@@ -1217,7 +1151,7 @@ public class ProfileManager : IProfileManager
             catch (Exception ex)
             {
                 _logService.Warn(nameof(ProfileManager), "加载 Profile 失败 [{ProfilePath}]: {ErrorMessage}",
-                                         profilePath, ex.Message);
+                                 profilePath, ex.Message);
             }
         }
 

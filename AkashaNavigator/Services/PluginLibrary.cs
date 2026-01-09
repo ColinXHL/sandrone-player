@@ -9,103 +9,6 @@ using AkashaNavigator.Core.Interfaces;
 
 namespace AkashaNavigator.Services
 {
-#region Result Types
-
-/// <summary>
-/// 插件安装结果状态
-/// </summary>
-public enum InstallResultStatus
-{
-    /// <summary>安装成功</summary>
-    Success,
-    /// <summary>插件已安装</summary>
-    AlreadyInstalled,
-    /// <summary>源目录不存在</summary>
-    SourceNotFound,
-    /// <summary>清单无效</summary>
-    InvalidManifest,
-    /// <summary>文件复制失败</summary>
-    CopyFailed
-}
-
-/// <summary>
-/// 插件安装结果
-/// </summary>
-public class InstallResult
-{
-    public InstallResultStatus Status { get; private set; }
-    public string? ErrorMessage { get; private set; }
-    public InstalledPluginInfo? PluginInfo { get; private set; }
-
-    private InstallResult()
-    {
-    }
-
-    public bool IsSuccess => Status == InstallResultStatus.Success;
-
-    public static InstallResult Success(InstalledPluginInfo pluginInfo) => new() { Status = InstallResultStatus.Success,
-                                                                                   PluginInfo = pluginInfo };
-
-    public static InstallResult AlreadyInstalled(string pluginId) => new() {
-        Status = InstallResultStatus.AlreadyInstalled, ErrorMessage = $"插件 {pluginId} 已安装"
-    };
-
-    public static InstallResult SourceNotFound(string path) => new() { Status = InstallResultStatus.SourceNotFound,
-                                                                       ErrorMessage = $"源目录不存在: {path}" };
-
-    public static InstallResult InvalidManifest(string message) => new() { Status = InstallResultStatus.InvalidManifest,
-                                                                           ErrorMessage = $"清单无效: {message}" };
-
-    public static InstallResult CopyFailed(string message) => new() { Status = InstallResultStatus.CopyFailed,
-                                                                      ErrorMessage = $"文件复制失败: {message}" };
-}
-
-/// <summary>
-/// 插件卸载结果状态
-/// </summary>
-public enum UninstallResultStatus
-{
-    /// <summary>卸载成功</summary>
-    Success,
-    /// <summary>插件未安装</summary>
-    NotInstalled,
-    /// <summary>插件被引用且未强制卸载</summary>
-    HasReferences,
-    /// <summary>文件删除失败</summary>
-    DeleteFailed
-}
-
-/// <summary>
-/// 插件卸载结果
-/// </summary>
-public class UninstallResult
-{
-    public UninstallResultStatus Status { get; private set; }
-    public string? ErrorMessage { get; private set; }
-    public List<string>? ReferencingProfiles { get; private set; }
-
-    private UninstallResult()
-    {
-    }
-
-    public bool IsSuccess => Status == UninstallResultStatus.Success;
-
-    public static UninstallResult Success() => new() { Status = UninstallResultStatus.Success };
-
-    public static UninstallResult NotInstalled(string pluginId) => new() { Status = UninstallResultStatus.NotInstalled,
-                                                                           ErrorMessage = $"插件 {pluginId} 未安装" };
-
-    public static UninstallResult HasReferences(string pluginId, List<string> profiles) => new() {
-        Status = UninstallResultStatus.HasReferences,
-        ErrorMessage = $"插件 {pluginId} 被 {profiles.Count} 个 Profile 引用", ReferencingProfiles = profiles
-    };
-
-    public static UninstallResult DeleteFailed(string message) => new() { Status = UninstallResultStatus.DeleteFailed,
-                                                                          ErrorMessage = $"文件删除失败: {message}" };
-}
-
-#endregion
-
 #region Event Args
 
 /// <summary>
@@ -348,12 +251,13 @@ public class PluginLibrary : IPluginLibrary
     /// <param name="pluginId">插件ID</param>
     /// <param name="sourceDirectory">源目录（为null时从内置插件目录查找）</param>
     /// <returns>安装结果</returns>
-    public InstallResult InstallPlugin(string pluginId, string? sourceDirectory = null)
+    public Result<InstalledPluginInfo> InstallPlugin(string pluginId, string? sourceDirectory = null)
     {
         // 检查是否已安装
         if (IsInstalled(pluginId))
         {
-            return InstallResult.AlreadyInstalled(pluginId);
+            return Result<InstalledPluginInfo>.Failure(
+                Error.Plugin(PluginErrorCodes.AlreadyInstalled, $"插件 {pluginId} 已安装", pluginId: pluginId));
         }
 
         // 确定源目录
@@ -362,7 +266,8 @@ public class PluginLibrary : IPluginLibrary
         // 检查源目录是否存在
         if (!Directory.Exists(sourcePath))
         {
-            return InstallResult.SourceNotFound(sourcePath);
+            return Result<InstalledPluginInfo>.Failure(
+                Error.FileSystem(PluginErrorCodes.SourceNotFound, $"源目录不存在: {sourcePath}", filePath: sourcePath));
         }
 
         // 检查清单文件
@@ -370,7 +275,9 @@ public class PluginLibrary : IPluginLibrary
         var manifestResult = PluginManifest.LoadFromFile(manifestPath);
         if (!manifestResult.IsSuccess)
         {
-            return InstallResult.InvalidManifest(manifestResult.ErrorMessage ?? "未知错误");
+            return Result<InstalledPluginInfo>.Failure(
+                Error.Plugin(PluginErrorCodes.InvalidManifest, $"清单无效: {manifestResult.ErrorMessage ?? "未知错误"}",
+                             pluginId: pluginId));
         }
 
         var manifest = manifestResult.Manifest!;
@@ -378,7 +285,9 @@ public class PluginLibrary : IPluginLibrary
         // 确保插件ID匹配
         if (!string.Equals(manifest.Id, pluginId, StringComparison.OrdinalIgnoreCase))
         {
-            return InstallResult.InvalidManifest($"清单中的ID ({manifest.Id}) 与请求的ID ({pluginId}) 不匹配");
+            return Result<InstalledPluginInfo>.Failure(
+                Error.Plugin(PluginErrorCodes.InvalidManifest,
+                             $"清单中的ID ({manifest.Id}) 与请求的ID ({pluginId}) 不匹配", pluginId: pluginId));
         }
 
         // 复制插件文件到全局库
@@ -389,7 +298,8 @@ public class PluginLibrary : IPluginLibrary
         }
         catch (Exception ex)
         {
-            return InstallResult.CopyFailed(ex.Message);
+            return Result<InstalledPluginInfo>.Failure(
+                Error.FileSystem(PluginErrorCodes.CopyFailed, $"文件复制失败: {ex.Message}", ex, filePath: targetDir));
         }
 
         // 更新索引
@@ -410,7 +320,7 @@ public class PluginLibrary : IPluginLibrary
         // 触发事件
         OnPluginChanged(new PluginLibraryChangedEventArgs(PluginLibraryChangeType.Installed, pluginId, pluginInfo));
 
-        return InstallResult.Success(pluginInfo);
+        return Result<InstalledPluginInfo>.Success(pluginInfo);
     }
 
     /// <summary>
@@ -449,13 +359,14 @@ public class PluginLibrary : IPluginLibrary
     /// <param name="force">是否强制卸载（忽略引用检查）</param>
     /// <param name="getReferencingProfiles">获取引用该插件的Profile列表的委托（用于解耦）</param>
     /// <returns>卸载结果</returns>
-    public UninstallResult UninstallPlugin(string pluginId, bool force = false,
-                                           Func<string, List<string>>? getReferencingProfiles = null)
+    public Result UninstallPlugin(string pluginId, bool force = false,
+                                  Func<string, List<string>>? getReferencingProfiles = null)
     {
         // 检查是否已安装
         if (!IsInstalled(pluginId))
         {
-            return UninstallResult.NotInstalled(pluginId);
+            return Result.Failure(
+                Error.Plugin(PluginErrorCodes.NotInstalled, $"插件 {pluginId} 未安装", pluginId: pluginId));
         }
 
         // 检查引用（如果提供了委托且不是强制卸载）
@@ -464,7 +375,10 @@ public class PluginLibrary : IPluginLibrary
             var profiles = getReferencingProfiles(pluginId);
             if (profiles.Count > 0)
             {
-                return UninstallResult.HasReferences(pluginId, profiles);
+                var error = Error.Plugin(PluginErrorCodes.HasReferences,
+                                         $"插件 {pluginId} 被 {profiles.Count} 个 Profile 引用", pluginId: pluginId);
+                error.Metadata["ReferencingProfiles"] = profiles;
+                return Result.Failure(error);
             }
         }
 
@@ -479,7 +393,8 @@ public class PluginLibrary : IPluginLibrary
         }
         catch (Exception ex)
         {
-            return UninstallResult.DeleteFailed(ex.Message);
+            return Result.Failure(Error.FileSystem(PluginErrorCodes.DeleteFailed, $"文件删除失败: {ex.Message}", ex,
+                                                   filePath: pluginDir));
         }
 
         // 更新索引
@@ -492,7 +407,7 @@ public class PluginLibrary : IPluginLibrary
         // 触发事件
         OnPluginChanged(new PluginLibraryChangedEventArgs(PluginLibraryChangeType.Uninstalled, pluginId));
 
-        return UninstallResult.Success();
+        return Result.Success();
     }
 
 #endregion

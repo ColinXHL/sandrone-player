@@ -225,7 +225,7 @@ public partial class MyProfilesPage : UserControl
         }
         else
         {
-            _notificationService.Error($"删除失败: {deleteResult.ErrorMessage}");
+            _notificationService.Error($"删除失败: {deleteResult.Error?.Message}");
         }
 
         return System.Threading.Tasks.Task.CompletedTask;

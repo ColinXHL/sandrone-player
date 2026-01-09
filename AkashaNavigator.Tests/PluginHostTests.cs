@@ -717,7 +717,7 @@ internal class TestablePluginHost : IDisposable
     }
 
     /// <summary>
-    /// 加载指定 Profile 的所有插件（旧模式：源码和配置在同一目录）
+    /// 加载指定 Profile 的所有插件（源码和配置在同一目录）
     /// </summary>
     public void LoadPluginsForProfile(string profileId)
     {
@@ -738,7 +738,7 @@ internal class TestablePluginHost : IDisposable
         var pluginDirs = Directory.GetDirectories(pluginsDir);
         foreach (var pluginDir in pluginDirs)
         {
-            LoadPluginLegacy(pluginDir);
+            LoadPluginFromDirectory(pluginDir);
         }
     }
 
@@ -895,9 +895,9 @@ internal class TestablePluginHost : IDisposable
     }
 
     /// <summary>
-    /// 加载单个插件（旧模式：源码和配置在同一目录）
+    /// 加载单个插件（源码和配置在同一目录）
     /// </summary>
-    private void LoadPluginLegacy(string pluginDir)
+    private void LoadPluginFromDirectory(string pluginDir)
     {
         var manifestPath = Path.Combine(pluginDir, "plugin.json");
         var loadResult = PluginManifest.LoadFromFile(manifestPath);
@@ -919,7 +919,7 @@ internal class TestablePluginHost : IDisposable
 
         var context = new PluginContext(manifest, pluginDir) {
             IsEnabled = config.Enabled,
-            ConfigDirectory = pluginDir // 旧模式下配置目录与源码目录相同
+            ConfigDirectory = pluginDir // 配置目录与源码目录相同
         };
 
         if (!context.LoadScript())
